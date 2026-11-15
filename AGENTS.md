@@ -38,6 +38,7 @@ pnpm check         # typecheck + lint + format check + tests
 pnpm test
 pnpm dev           # local server, model in memory, http://localhost:8787
 pnpm fos --help    # CLI against it (FAMILY_OS_URL, FAMILY_OS_TOKEN)
+pnpm import-notion <export.csv>... [--into <url>]   # Notion history: dry run in memory, or into a stage
 pnpm format
 pnpm docs:dev
 pnpm repos:sync
