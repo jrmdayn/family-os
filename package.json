@@ -14,6 +14,7 @@
     "repos:sync": "bash scripts/sync-repos.sh",
     "dev": "pnpm --filter @family-os/server dev",
     "fos": "node packages/cli/src/fos.ts",
+    "deploy:prod": "alchemy deploy --stage prod",
     "stacks:github": "alchemy deploy --config stacks/github.ts --profile admin --stage prod",
     "stacks:github:reveal": "REVEAL_SESSION_TOKEN=true alchemy deploy --config stacks/github.ts --profile admin --stage prod"
   },

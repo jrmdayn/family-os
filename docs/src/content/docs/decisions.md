@@ -5,6 +5,18 @@ description: The choices behind Family OS, with the reason for each.
 
 Each entry records a choice, why it was made, and what would make us revisit it. Newest first.
 
+## Every pull request gets a preview stage
+
+**Decision.** CI deploys each pull request from this repository to its own stage, `pr-<number>`, comments the URLs on the pull request, and destroys the stage when the pull request closes. Previews use the same Cloudflare account and CI token as prod. See [Deploying](/building/deploying/).
+
+**Why.** A change can be tried on Cloudflare before it reaches `main`, and with the server in M2, Claude Code can be pointed at a preview's `/mcp`. Stages are Alchemy's unit of isolation, so a preview needs no extra configuration, and Workers on workers.dev cost nothing while idle. Revisit if previews need data that must not sit on the prod account; Alchemy's tutorial shows splitting them onto a second account.
+
+## The docs deploy from main, as static assets in the app stack
+
+**Decision.** `alchemy.run.ts` declares the docs as a `Cloudflare.Website.StaticSite` with no Worker code, and CI deploys its `prod` stage on every push to `main` that passes the checks. See [Deploying](/building/deploying/).
+
+**Why.** The site is fully static, so an assets-only Worker serves it at no compute cost, with no extra dependency (`Cloudflare.Website.Astro` would need `@alchemy.run/frontend-frameworks` for nothing). Putting it in the app stack now means the server joins an existing stack and deploy job in M2. Deploys from `main` aren't cancelled by later pushes, so state is never left mid-apply. Revisit if the docs need server-rendered pages.
+
 ## CI credentials are provisioned as code
 
 **Decision.** `stacks/github.ts` creates CI's Cloudflare API token and writes it into the repository's GitHub Actions secrets. It runs from the owner's laptop with an `admin` Alchemy profile. See [Deploy credentials](/building/deploy-credentials/).
