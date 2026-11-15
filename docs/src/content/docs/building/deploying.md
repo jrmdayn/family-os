@@ -15,6 +15,8 @@ Everything that runs on Cloudflare is declared in one Alchemy stack, `alchemy.ru
 | `/api/...` | Scripts, `curl` | The same calls as plain HTTP and JSON |
 | `/api/openapi.json` | Anyone generating a client | The OpenAPI document of `/api` |
 | `/rpc` | `fos`, later the web app | The Api's own protocol, for typed Effect clients |
+| `/api/auth/...`, `/.well-known/...` | Browsers, Claude.ai | Google sign-in, and the OAuth server a Claude connector signs in through |
+| `/`, `/sign-in`, `/consent` | Browsers | The pages the owner signs in on |
 
 ```ts
 // packages/server/src/FamilyOsWorker.ts
@@ -24,15 +26,19 @@ const FamilyOsLive = SessionLive.pipe(
       Layer.provide(DomainCloudflare.layerDurableObjects({ jurisdiction: "eu" })),
     ),
   ),
+  Layer.provideMerge(AuthLive), // better-auth on D1, with Google
+  Layer.provideMerge(OwnersFromConfig()),
   Layer.provide(OwnerTokenFromConfig()),
 );
 ```
 
 The local dev server and the Api tests build the same thing with `Domain.InMemory` in place of `DomainCloudflare.layerDurableObjects(...)`. Only the hosting changes.
 
-Every route goes through the `OwnerApi`'s handlers, so the `Session` middleware checks the bearer token on every call. Without a valid token, `/api` answers `401` and an MCP tool call returns an `Unauthorized` error. `tools/list` still lists the tools to anyone, since their descriptions are in this repository anyway.
+Every route goes through the `OwnerApi`'s handlers, so the `Session` middleware checks who is calling on every call: the owner token, a Claude access token, or a Google session cookie (see [Signing in](/building/signing-in/)). Without one, `/api` answers `401`, and so does `/mcp`, before any tool runs, with the `WWW-Authenticate` header that starts Claude's OAuth sign-in.
 
 **The token.** `OwnerTokenFromConfig` reads `FAMILY_OS_TOKEN` while the Worker builds. At deploy, Alchemy reads it from the environment and binds it to the Worker as a secret. At runtime, the Worker reads it back from that binding. `stacks/github.ts` makes the token and writes it to the repository's secrets (see [Deploy credentials](/building/deploy-credentials/)). A token shorter than 32 characters fails the deploy. That includes an empty one, which is what GitHub Actions passes when the secret doesn't exist.
+
+**Sign-in.** `AuthLive` reads `FAMILY_OS_OWNERS`, `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` while the Worker builds, so they are bound as secrets the same way, and a deploy without them fails. better-auth keeps its tables in a D1 database, `AuthDb`, in the EU jurisdiction; Alchemy migrates its schema during the deploy. The Worker reads its own URL from a `Cloudflare.Worker.URL` binding, for the OAuth issuer and the `/mcp` resource.
 
 **The data stays in the EU.** The Durable Objects are created in Cloudflare's EU jurisdiction: sitters' names and IBANs are personal data. See [Decisions](/decisions/).
 
@@ -91,7 +97,7 @@ All stages share the Cloudflare account, the Alchemy state store and the owner t
 
 To deploy a branch to dev, open the CI workflow in the repository's Actions tab, choose "Run workflow" and pick the branch. GitHub only offers that button once the workflow, with its `workflow_dispatch` trigger, is on the default branch. `gh workflow run ci.yml --ref <branch>` does the same from a terminal.
 
-All of them use the `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` and `FAMILY_OS_TOKEN` secrets (see [Deploy credentials](/building/deploy-credentials/)). Previews and dev bind the same owner token as prod.
+All of them use the `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` and `FAMILY_OS_TOKEN` secrets (see [Deploy credentials](/building/deploy-credentials/)), and the sign-in secrets `FAMILY_OS_OWNERS`, `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` (see [Signing in](/building/signing-in/)). Previews and dev bind the same owner token and owners as prod.
 
 A preview is a full copy of the stack under its own stage, with generated Worker names. When CI sets `PULL_REQUEST`, `alchemy.run.ts` also declares a `GitHub.Comment` on the pull request listing the preview's URLs (its `/mcp`, its OpenAPI document and its docs), using the workflow's own `GITHUB_TOKEN`. The comment keeps its logical id, so each push edits it in place, and it stays on the pull request after the preview is destroyed. Pull requests from forks get no preview, since they can't read the secrets.
 
@@ -99,7 +105,7 @@ Deploys and destroys are never cancelled halfway: a newer push waits for the run
 
 ## Deploying by hand
 
-With the Cloudflare credentials and `FAMILY_OS_TOKEN` in the environment (or an Alchemy profile for Cloudflare):
+With the Cloudflare credentials, `FAMILY_OS_TOKEN`, `FAMILY_OS_OWNERS`, `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in the environment (or an Alchemy profile for Cloudflare):
 
 ```sh
 pnpm exec alchemy plan --stage prod   # what would change

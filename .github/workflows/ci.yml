@@ -40,7 +40,8 @@ jobs:
   # Every push to main that passes the checks deploys the prod stage of
   # alchemy.run.ts: the server Worker and the docs site. Credentials are the
   # CI token that stacks/github.ts writes into the repository's secrets, with
-  # the owner's bearer token (FAMILY_OS_TOKEN), bound to the Worker.
+  # the owner's bearer token (FAMILY_OS_TOKEN), and sign-in: the owners' emails
+  # (FAMILY_OS_OWNERS) and the Google OAuth client, all bound to the Worker.
   deploy:
     needs: check
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -62,6 +63,9 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           FAMILY_OS_TOKEN: ${{ secrets.FAMILY_OS_TOKEN }}
+          FAMILY_OS_OWNERS: ${{ secrets.FAMILY_OS_OWNERS }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
 
   # The long-lived dev stage, with its own data, is never deployed on push.
   # Start this workflow by hand from the Actions tab to deploy any branch to it,
@@ -87,6 +91,9 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           FAMILY_OS_TOKEN: ${{ secrets.FAMILY_OS_TOKEN }}
+          FAMILY_OS_OWNERS: ${{ secrets.FAMILY_OS_OWNERS }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
 
   # Each open pull request from this repository gets its own stage, pr-<number>,
   # redeployed on every push that passes the checks. alchemy.run.ts comments
@@ -129,6 +136,9 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           FAMILY_OS_TOKEN: ${{ secrets.FAMILY_OS_TOKEN }}
+          FAMILY_OS_OWNERS: ${{ secrets.FAMILY_OS_OWNERS }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           GITHUB_TOKEN: ${{ github.token }}
           PULL_REQUEST: ${{ github.event.number }}
           PREVIEW_SHA: ${{ github.event.pull_request.head.sha }}
@@ -161,5 +171,8 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           FAMILY_OS_TOKEN: ${{ secrets.FAMILY_OS_TOKEN }}
+          FAMILY_OS_OWNERS: ${{ secrets.FAMILY_OS_OWNERS }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           GITHUB_TOKEN: ${{ github.token }}
           PULL_REQUEST: ${{ github.event.number }}

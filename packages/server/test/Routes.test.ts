@@ -12,7 +12,7 @@ import * as HttpRouter from "effect/http/HttpRouter";
 import * as Layer from "effect/Layer";
 import * as Redacted from "effect/Redacted";
 import * as Schedule from "effect/Schedule";
-import { Routes } from "../src/Routes.ts";
+import { ModelRoutes } from "../src/Routes.ts";
 import { OwnerToken, SessionLive } from "../src/Session.ts";
 
 /**
@@ -30,7 +30,7 @@ const World = SessionLive.pipe(
 
 /** A server answering in process, like the Worker: `fetch(path, init)` returns its response. */
 const serve = Effect.gen(function* () {
-  const { handler, dispose } = HttpRouter.toWebHandler(Routes.pipe(Layer.provide(World)), {
+  const { handler, dispose } = HttpRouter.toWebHandler(ModelRoutes.pipe(Layer.provide(World)), {
     disableLogger: true,
   });
   yield* Effect.addFinalizer(() => Effect.promise(dispose));
@@ -177,9 +177,13 @@ it.live("/mcp serves every call as a tool, signed in with the owner's token", ()
     expect(tools.map((tool) => tool.name)).toContain("OwnerApi_LogShift_send");
     expect(tools).toHaveLength(15);
 
-    const anonymous = yield* call("OwnerApi_Payouts_get", { key: HOME });
-    expect(anonymous.isError).toBe(true);
-    expect(JSON.parse(anonymous.content[0].text)).toEqual({ _tag: "Unauthorized" });
+    // Without a token, /mcp answers 401 before any tool runs: that starts an OAuth sign-in.
+    const anonymous = yield* fetch(
+      "/mcp",
+      mcp("tools/call", { name: "OwnerApi_Payouts_get", arguments: { key: HOME } }),
+    );
+    expect(anonymous.status).toBe(401);
+    expect(anonymous.headers.get("www-authenticate")).toBe("Bearer");
 
     // A household view reads null until something reaches it; its description says so.
     const fresh = yield* call("OwnerApi_Payouts_get", { key: HOME }, TOKEN);

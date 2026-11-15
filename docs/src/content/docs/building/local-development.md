@@ -13,6 +13,8 @@ This starts `packages/server/src/dev.ts`: the whole model in memory, on `http://
 
 The dev server checks a bearer token like the deployed one: `FAMILY_OS_TOKEN`, `dev-token` by default.
 
+It also serves sign-in (`/sign-in`, `/api/auth/...`), with better-auth in memory. To sign in with Google locally, set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` and `FAMILY_OS_OWNERS` (your email) before `pnpm dev`; `http://localhost:8787/api/auth/callback/google` is already a redirect URI of the Google client. Without them, the token does everything. See [Signing in](/building/signing-in/).
+
 ## Drive it from the terminal
 
 `pnpm fos` is the CLI. Every command and read of the `OwnerApi` is a subcommand, and its help is the description an LLM sees as the MCP tool description:
@@ -73,13 +75,14 @@ pnpm test
 ```
 
 - **Stories** (`packages/domain/test/`): the business rules, against the model in memory.
-- **Api tests** (`packages/server/test/`): the `OwnerApi` as a client sees it, with the real session middleware: a full flow, a typed rejection, and wrong tokens refused. `Routes.test.ts` sends HTTP requests to the routes the Worker serves (`/rpc`, `/api`, `/api/openapi.json`, `/mcp`) with the model in memory. `Session.test.ts` checks that a missing or short `FAMILY_OS_TOKEN` is refused.
+- **Api tests** (`packages/server/test/`): the `OwnerApi` as a client sees it, with the real session middleware: a full flow, a typed rejection, and wrong tokens refused. `Routes.test.ts` sends HTTP requests to the routes the Worker serves (`/rpc`, `/api`, `/api/openapi.json`, `/mcp`) with the model in memory. `Session.test.ts` checks that a missing or short `FAMILY_OS_TOKEN` is refused. `SignIn.test.ts` runs Claude.ai's whole OAuth sign-in against the routes (discovery, registration, Google sign-in, consent, the token, then `/mcp`), with a local OpenID Connect provider standing in for Google, and checks that someone who isn't an owner can't sign in and that forged tokens are refused.
 
 ## How the packages fit
 
 ```text
 packages/domain   the model, its Session middleware declaration and the OwnerApi
-packages/server   Session.ts (bearer token check), Routes.ts (/rpc, /api, /mcp),
+packages/server   Session.ts (who is calling), Auth.ts (better-auth: Google, OAuth),
+                  Owners.ts, Pages.ts, Routes.ts (/rpc, /api, /mcp, sign-in),
                   FamilyOsWorker.ts (on Cloudflare) and dev.ts (the local server)
 packages/cli      fos.ts, the CLI
 ```

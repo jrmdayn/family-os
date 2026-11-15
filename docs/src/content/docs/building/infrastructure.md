@@ -9,14 +9,21 @@ Everything Family OS runs is on one Cloudflare account: a server Worker that hos
 
 | Stack | File | Declares | Deployed |
 |---|---|---|---|
-| `FamilyOs` | `alchemy.run.ts` | The server Worker and its Durable Objects, the docs site, and on previews the pull request comment | By CI and `pnpm deploy:*`, once per stage |
+| `FamilyOs` | `alchemy.run.ts` | The server Worker, its Durable Objects and its sign-in database (D1), the docs site, and on previews the pull request comment | By CI and `pnpm deploy:*`, once per stage |
 | `FamilyOsGitHub` | `stacks/github.ts` | The Cloudflare API tokens for CI and for Claude Code cloud sessions, the owner token, and the GitHub Actions secrets that hold them | By hand, from the owner's laptop, stage `prod` only |
 
 The app stack never creates credentials, and the credentials stack never deploys the app. The second one needs an admin credential that can create API tokens, which CI never has. See [Deploy credentials](/building/deploy-credentials/).
 
 ## The server Worker
 
-`packages/server/src/FamilyOsWorker.ts` is one Worker. It serves `/mcp`, `/api` and `/rpc` from `packages/server/src/Routes.ts` (see [Deploying](/building/deploying/#the-server-worker)), and builds the model with `DomainCloudflare.layerDurableObjects({ jurisdiction: "eu" })`.
+`packages/server/src/FamilyOsWorker.ts` is one Worker. It serves `/mcp`, `/api` and `/rpc` from `packages/server/src/Routes.ts` (see [Deploying](/building/deploying/#the-server-worker)), and builds the model with `DomainCloudflare.layerDurableObjects({ jurisdiction: "eu" })`. It also signs the owner in, with better-auth: Google sign-in and the OAuth server Claude.ai connects through, under `/api/auth` (see [Signing in](/building/signing-in/)).
+
+Besides the Durable Objects, the plan lists sign-in's resources:
+
+- **`AuthDb`**, a D1 database in the EU jurisdiction: better-auth's users, sessions, OAuth clients, consents and signing keys.
+- **`BetterAuthSecret`**, a random secret kept in Alchemy's state and bound to the Worker: it signs cookies and encrypts the signing keys.
+- **`BetterAuthMigrate`**, the deploy step that creates or updates better-auth's tables in `AuthDb`.
+- **`WORKER_URL`**, a binding holding the Worker's own URL, for the OAuth issuer.
 
 Domain turns every aggregate, view and policy of the model into a Durable Object class on this Worker while it builds. Nothing in our code declares a class or a binding. The class names start with the model's name, `FamilyOs`. `alchemy plan --stage dev` lists them:
 
@@ -54,13 +61,15 @@ Every one of these objects is created and stored in Cloudflare's EU jurisdiction
 ```text
 Claude
   │  POST /mcp   tools/call OwnerApi_LogShift_send
-  │  Authorization: Bearer <FAMILY_OS_TOKEN>
+  │  Authorization: Bearer <FAMILY_OS_TOKEN, or the access token Claude.ai got through OAuth>
   ▼
 Server Worker (family-os / family-os-dev)          packages/server/src/FamilyOsWorker.ts
-  │  Routes.ts: /mcp runs a request-scoped MCP server (sessionless, 2026-07-28)
+  │  Routes.ts: /mcp answers 401 to an unknown caller, else runs a
+  │  request-scoped MCP server (sessionless, 2026-07-28)
   ▼
 Session middleware                                  packages/server/src/Session.ts
-  │  checks the bearer token; a wrong one returns Unauthorized here
+  │  finds the owner: their token, an OAuth token for /mcp, or a session
+  │  cookie, with an email in FAMILY_OS_OWNERS; else Unauthorized
   ▼
 OwnerApi handlers                                   packages/domain/src/OwnerApi.api.ts
   │  LogShift { target: "maria", input: { date, minutes } }
@@ -104,7 +113,10 @@ Both stacks use `Cloudflare.state()`: Alchemy keeps what it deployed in a state 
 | `CLOUDFLARE_API_TOKEN` (CI token) | GitHub Actions secret | CI's deploy jobs |
 | `CLOUDFLARE_API_TOKEN` (session token) | Claude Code cloud environment | Deploys and plans from cloud sessions |
 | `CLOUDFLARE_ACCOUNT_ID` | GitHub Actions secret, Claude Code cloud environment | Every deploy |
-| `FAMILY_OS_TOKEN` (owner token) | Alchemy state (`OwnerToken`), GitHub Actions secret, Claude Code cloud environment, and a secret binding on each stage's server Worker | Deploys bind it; the Session middleware checks it; Claude and `fos` send it |
+| `FAMILY_OS_TOKEN` (owner token) | Alchemy state (`OwnerToken`), GitHub Actions secret, Claude Code cloud environment, and a secret binding on each stage's server Worker | Deploys bind it; the Session middleware checks it; Claude Code and `fos` send it |
+| `FAMILY_OS_OWNERS`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | GitHub Actions secrets, the Claude Code cloud environment, and secret bindings on each stage's server Worker | Deploys bind them; better-auth signs in with Google; the Session middleware checks the owners |
+| `BetterAuthSecret` | Alchemy state, and a secret binding on each stage's server Worker | better-auth: cookies and the encryption of its signing keys |
+| OAuth signing keys | `AuthDb` (D1), private keys encrypted | Signing the access tokens Claude.ai uses |
 | State store token and encryption key | The account's Secrets Store | Alchemy |
 | Admin credential | The `admin` Alchemy profile on the owner's laptop | `pnpm stacks:github` only |
 | `GITHUB_TOKEN` | Issued by GitHub to each workflow run | The preview comment |
@@ -117,4 +129,4 @@ This site is Astro + Starlight, prerendered, and deployed by the same app stack 
 
 ## Locally
 
-`pnpm dev` runs none of this: the same routes and the same model, with `Domain.InMemory` in place of Durable Objects and `dev-token` as the token. See [Local development](/building/local-development/).
+`pnpm dev` runs none of this: the same routes and the same model, with `Domain.InMemory` in place of Durable Objects, better-auth in memory in place of D1, and `dev-token` as the token. See [Local development](/building/local-development/).
