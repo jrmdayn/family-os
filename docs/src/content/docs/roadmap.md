@@ -44,7 +44,7 @@ Needs a Cloudflare account and an API token stored as a GitHub secret.
 - [x] Alchemy remote state, `dev` and `prod` stages, deploys from GitHub Actions. `dev` is deployed on demand. See [Deploying](/building/deploying/#stages).
 - [x] A preview stage per pull request (`pr-<number>`), its URLs commented on the pull request, destroyed on close.
 - [x] This docs site deployed publicly by the same stack (`alchemy.run.ts`), from CI on every push to `main`. See [Deploying](/building/deploying/).
-- [ ] Docs: infrastructure, and the "Maria 4h on Friday" walkthrough.
+- [x] Docs: [infrastructure](/building/infrastructure/), and the ["Maria 4h on Friday" walkthrough](/building/walkthrough/).
 
 **Done when** Claude Code logs a shift in `dev`, and the docs are online.
 
