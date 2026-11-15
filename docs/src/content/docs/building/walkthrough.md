@@ -5,7 +5,7 @@ description: Connect Claude Code to the dev stage, then follow one conversation 
 
 This page follows one conversation end to end: set the household rate, register Maria, "Maria 4h on Friday", "What do I need to wire to whom?", "I paid Maria". For each step it shows the tool Claude calls, its arguments and the result Family OS sends back.
 
-The results below are real: they were recorded on Sunday 15 November 2026 against the local dev server, by sending the same MCP requests Claude sends (see [Call a tool without Claude](#call-a-tool-without-claude)). A deployed stage answers with the same shapes; on a stage that already holds data, `version` numbers and balances differ. Claude's own words vary from one run to the next, so this page describes what Claude does with each result rather than quoting it.
+The results below are real: they were recorded on Sunday 15 November 2026 against the local dev server, by sending the same MCP requests Claude sends (see [Call a tool without Claude](#call-a-tool-without-claude)). The same conversation on the empty `dev` stage that day gave identical results, apart from the race described under step 3. A deployed stage answers with the same shapes; on a stage that already holds data, `version` numbers and balances differ. Claude's own words vary from one run to the next, so this page describes what Claude does with each result rather than quoting it.
 
 ## Connect Claude Code to dev
 
@@ -150,7 +150,7 @@ The shift was priced at Maria's rate on the 13th, €15/h, so it comes to €60,
 { "_tag": "NoRateForDate", "date": "2026-11-13" }
 ```
 
-(Recorded by logging a shift for a sitter registered before any household rate existed. The local dev server applied the policy before the next call every time we tried, so the race itself didn't show there.) The policy catches up within a moment, so sending the same `LogShift` again works. If it keeps failing, the household has no rate for that date: `HourlyRates` and `SitterBalance` show which rates exist. This is the trade-off of copying the rate through policies; see [Decisions](/decisions/).
+The local dev server applied the policy before the next call every time we tried, but on the `dev` stage the race does happen: run on 15 November 2026, the first `LogShift` straight after `RegisterSitter` got this rejection, `SitterBalance` already listed her €15/h a moment later, and the same `LogShift` sent again returned the receipt above. The policy catches up within a moment, so sending the same `LogShift` again works. If it keeps failing, the household has no rate for that date: `HourlyRates` and `SitterBalance` show which rates exist. This is the trade-off of copying the rate through policies; see [Decisions](/decisions/).
 
 ## 4. "What do I need to wire to whom?"
 

@@ -46,7 +46,7 @@ Needs a Cloudflare account and an API token stored as a GitHub secret.
 - [x] This docs site deployed publicly by the same stack (`alchemy.run.ts`), from CI on every push to `main`. See [Deploying](/building/deploying/).
 - [x] Docs: [infrastructure](/building/infrastructure/), and the ["Maria 4h on Friday" walkthrough](/building/walkthrough/).
 
-**Done when** Claude Code logs a shift in `dev`, and the docs are online.
+**Done when** Claude Code logs a shift in `dev`, and the docs are online. ✓
 
 ## M3: Sign-in, and Claude on web and mobile
 
