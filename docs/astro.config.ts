@@ -19,6 +19,7 @@ export default defineConfig({
             { label: "The repository", link: "/building/repository/" },
             { label: "The babysitting model", link: "/building/babysitting-model/" },
             { label: "Local development", link: "/building/local-development/" },
+            { label: "Deploy credentials", link: "/building/deploy-credentials/" },
           ],
         },
         { label: "Decisions", link: "/decisions/" },

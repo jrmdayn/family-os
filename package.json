@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test",
-    "typecheck": "pnpm -r --parallel typecheck",
+    "typecheck": "pnpm -r --parallel typecheck && tsc --noEmit -p tsconfig.stacks.json",
     "lint": "oxlint",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
@@ -13,9 +13,15 @@
     "docs:build": "pnpm --filter @family-os/docs build",
     "repos:sync": "bash scripts/sync-repos.sh",
     "dev": "pnpm --filter @family-os/server dev",
-    "fos": "node packages/cli/src/fos.ts"
+    "fos": "node packages/cli/src/fos.ts",
+    "stacks:github": "alchemy deploy --config stacks/github.ts --profile admin --stage prod"
   },
   "devDependencies": {
+    "@alchemy.run/cloudflare": "catalog:",
+    "@alchemy.run/github": "catalog:",
+    "@types/node": "catalog:",
+    "alchemy": "catalog:",
+    "effect": "catalog:",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "typescript": "catalog:"

@@ -13,6 +13,7 @@ family-os/
     cli/      @family-os/cli      fos, the Api from a terminal
     web/      @family-os/web      the Foldkit app
   docs/       @family-os/docs     this site (Astro + Starlight)
+  stacks/     github.ts: CI credentials as code
   scripts/    sync-repos.sh, and later the Notion import
   repos/      reference sources, gitignored (see below)
 ```

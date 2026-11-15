@@ -10,6 +10,7 @@ catalog:
   alchemy: 2.0.0-beta.87
   "@alchemy.run/cloudflare": 2.0.0-beta.87
   "@alchemy.run/domain": 2.0.0-beta.87
+  "@alchemy.run/github": 2.0.0-beta.87
   # Effect
   effect: 4.1.4
   "@effect/platform-node": 4.1.4
@@ -26,7 +27,10 @@ catalog:
   typescript: 7.0.2
   vitest: 5.1.0
 
-# Packages allowed to link the agent skills they ship into .claude/skills.
+# What dependencies may do on install: link the agent skills they ship into
+# .claude/skills, or run their install script (workerd fetches its binary).
 permissions:
   "@alchemy.run/domain":
     skills: true
+  workerd:
+    build: true

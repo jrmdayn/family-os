@@ -5,6 +5,12 @@ description: The choices behind Family OS, with the reason for each.
 
 Each entry records a choice, why it was made, and what would make us revisit it. Newest first.
 
+## CI credentials are provisioned as code
+
+**Decision.** `stacks/github.ts` creates CI's Cloudflare API token and writes it into the repository's GitHub Actions secrets. It runs from the owner's laptop with an `admin` Alchemy profile. See [Deploy credentials](/building/deploy-credentials/).
+
+**Why.** This is Alchemy's recommended setup. The CI token is scoped to deploying Family OS, its value never passes through a terminal or the GitHub UI, and rotating it is one command. The powerful credential, the one that can create tokens, stays on one laptop.
+
 ## A bearer token stands in for sign-in until M3
 
 **Decision.** The server's `Session` middleware accepts one secret bearer token and signs it in as the owner. The dev server reads it from `FAMILY_OS_TOKEN`.
