@@ -5,6 +5,14 @@ description: The choices behind Family OS, with the reason for each.
 
 Each entry records a choice, why it was made, and what would make us revisit it. Newest first.
 
+## A long-lived `dev` stage, deployed on demand
+
+**Decision.** Besides `prod` and the `pr-<number>` previews, the stack has a `dev` stage that lives on, with its own data. Nothing deploys it on push: CI's `deploy-dev` job, started by hand from the Actions tab (`workflow_dispatch`), deploys any branch to it after the checks, and `pnpm deploy:dev` does the same from a laptop. Its server Worker is named `family-os-dev`, so its URL is stable (`https://family-os-dev.jrmdayn.workers.dev`) like prod's. It shares the Cloudflare account, the state store and the owner token with the other stages. See [Deploying](/building/deploying/#stages).
+
+**Why.** A preview's data disappears when its pull request closes, and prod holds the real ledger. Trying a change against real Durable Objects, and pointing Claude Code at a deployed `/mcp` while building (M2's "done when"), needs a place whose data survives between deploys and whose URL doesn't change, so Claude's MCP configuration is set once. Deploying it on demand rather than on every push to a branch means any branch can be tried there without a merge, and what is being tried on `dev` stays there until someone deploys something else on purpose.
+
+**Revisit if** several people need `dev` at the same time (then per-person stages, or deploy `dev` from a branch), or `dev` starts holding data that must not share prod's account and token.
+
 ## One Worker serves `/rpc`, `/api` and `/mcp` from the same Api
 
 **Decision.** The server Worker serves the `OwnerApi` three ways, from `packages/server/src/Routes.ts`: `/rpc` (the Api's own protocol, for `fos` and later the web app), `/api` (plain HTTP and JSON with an OpenAPI document, from Domain's `toHttpApi`) and `/mcp` (MCP tools, from Domain's `toMcp`). All three publish the same list of calls, `ownerCalls` in `OwnerApi.api.ts`, and the local dev server serves the same routes. `/mcp` serves only MCP `2026-07-28`, the sessionless revision, through `McpServer.layerHttpRequestScoped`. See [Deploying](/building/deploying/#the-server-worker).

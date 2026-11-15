@@ -42,6 +42,7 @@ pnpm format
 pnpm docs:dev
 pnpm repos:sync
 pnpm exec alchemy plan --stage prod   # what a deploy would change (CI deploys prod on push to main, pr-<n> per pull request)
+pnpm deploy:dev    # deploy the current checkout to the long-lived dev stage (or run CI's deploy-dev job)
 ```
 
 Deploying needs `FAMILY_OS_TOKEN` (the owner's bearer token, at least 32 characters) besides the Cloudflare credentials: the Worker binds it as a secret.

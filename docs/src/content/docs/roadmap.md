@@ -41,7 +41,7 @@ Needs a Cloudflare account and an API token stored as a GitHub secret.
 
 - [x] Server Worker: the model on Durable Objects (in the EU), `/api` with OpenAPI, `/mcp` (MCP `2026-07-28`), and `/rpc` for `fos`. See [Deploying](/building/deploying/#the-server-worker).
 - [x] The bearer token from M1 guards the deployed Api and `/mcp`, so Claude Code can call it before OAuth exists. `stacks/github.ts` mints it as `FAMILY_OS_TOKEN`.
-- [ ] Alchemy remote state, `dev` and `prod` stages, deploys from GitHub Actions.
+- [x] Alchemy remote state, `dev` and `prod` stages, deploys from GitHub Actions. `dev` is deployed on demand. See [Deploying](/building/deploying/#stages).
 - [x] A preview stage per pull request (`pr-<number>`), its URLs commented on the pull request, destroyed on close.
 - [x] This docs site deployed publicly by the same stack (`alchemy.run.ts`), from CI on every push to `main`. See [Deploying](/building/deploying/).
 - [ ] Docs: infrastructure, and the "Maria 4h on Friday" walkthrough.
