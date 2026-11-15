@@ -3,8 +3,9 @@ import * as Schema from "effect/Schema";
 import { Cents, PositiveCents } from "../Money.ts";
 import { Session } from "../Session.middleware.ts";
 import { IsoDate } from "../Time.ts";
-import { Ledger } from "./Ledger.aggregate.ts";
+import { HOME, Household } from "./Household.ts";
 import { anySignedInCaller } from "./signedIn.ts";
+import { Sitter } from "./Sitter.aggregate.ts";
 import { SitterId } from "./Sitter.id.ts";
 
 const Account = Schema.Struct({
@@ -67,16 +68,17 @@ const settledIfZero = (account: Account): Account =>
 export class Payouts extends Domain.View(
   "Payouts",
   {
-    from: [Ledger],
-    key: Ledger,
+    from: [Sitter],
+    key: Household,
+    keyOf: { Sitter: () => HOME },
     middleware: [Session],
     state: PayoutsState,
     initial: { payouts: [], total: 0, accounts: {} },
     evolve: {
-      SitterRegistered: (v, e) =>
+      SitterRegistered: (v, e, { source }) =>
         withAccounts({
           ...v.accounts,
-          [e.sitterId]: {
+          [source.id]: {
             name: e.name,
             iban: e.iban,
             balance: 0,
@@ -84,10 +86,10 @@ export class Payouts extends Domain.View(
             unpaidTo: null,
           },
         }),
-      SitterDetailsChanged: (v, e) =>
-        updated(v, e.sitterId, (account) => ({ ...account, name: e.name, iban: e.iban })),
-      ShiftLogged: (v, e) =>
-        updated(v, e.sitterId, (account) => ({
+      SitterDetailsChanged: (v, e, { source }) =>
+        updated(v, source.id, (account) => ({ ...account, name: e.name, iban: e.iban })),
+      ShiftLogged: (v, e, { source }) =>
+        updated(v, source.id, (account) => ({
           ...account,
           balance: e.balanceAfter,
           unpaidFrom:
@@ -97,14 +99,14 @@ export class Payouts extends Domain.View(
           unpaidTo:
             account.unpaidTo === null || e.date > account.unpaidTo ? e.date : account.unpaidTo,
         })),
-      ShiftCorrected: (v, e) =>
-        updated(v, e.sitterId, (account) => settledIfZero({ ...account, balance: e.balanceAfter })),
-      ShiftCancelled: (v, e) =>
-        updated(v, e.sitterId, (account) => settledIfZero({ ...account, balance: e.balanceAfter })),
-      PaymentRecorded: (v, e) =>
-        updated(v, e.sitterId, (account) => settledIfZero({ ...account, balance: e.balanceAfter })),
-      PaymentCancelled: (v, e) =>
-        updated(v, e.sitterId, (account) => ({ ...account, balance: e.balanceAfter })),
+      ShiftCorrected: (v, e, { source }) =>
+        updated(v, source.id, (account) => settledIfZero({ ...account, balance: e.balanceAfter })),
+      ShiftCancelled: (v, e, { source }) =>
+        updated(v, source.id, (account) => settledIfZero({ ...account, balance: e.balanceAfter })),
+      PaymentRecorded: (v, e, { source }) =>
+        updated(v, source.id, (account) => settledIfZero({ ...account, balance: e.balanceAfter })),
+      PaymentCancelled: (v, e, { source }) =>
+        updated(v, source.id, (account) => ({ ...account, balance: e.balanceAfter })),
     },
   },
   {

@@ -2,24 +2,19 @@ import * as Domain from "@alchemy.run/domain";
 import { PositiveCents } from "../Money.ts";
 import { Session } from "../Session.middleware.ts";
 import { IsoDate } from "../Time.ts";
-import { LedgerId } from "./Ledger.id.ts";
+import { Household } from "./Household.ts";
+import { RateNotAfterLatest } from "./RateNotAfterLatest.rejection.ts";
 
-/** The hourly rate every sitter is paid changed, from a given day on. */
+/** The household's hourly rate changed, from a given day on. Every active sitter gets it. */
 export class HourlyRateSet extends Domain.Event("HourlyRateSet", {
   centsPerHour: PositiveCents,
   effectiveFrom: IsoDate,
 }) {}
 
-export class RateNotAfterLatest extends Domain.Rejection(
-  "RateNotAfterLatest",
-  { latestEffectiveFrom: IsoDate },
-  { description: "A new rate must take effect after the latest one. Rates are never rewritten." },
-) {}
-
 export class SetHourlyRate extends Domain.Command(
   "SetHourlyRate",
   {
-    target: LedgerId,
+    target: Household,
     middleware: [Session],
     input: { centsPerHour: PositiveCents, effectiveFrom: IsoDate },
     events: [HourlyRateSet],
@@ -28,6 +23,6 @@ export class SetHourlyRate extends Domain.Command(
   },
   {
     description:
-      "Set the hourly rate paid to every sitter, in cents, from `effectiveFrom` on (e.g. €15/h from 2027-01-01 is centsPerHour 1500, effectiveFrom 2027-01-01). It must start after the latest rate. Shifts already logged keep the rate they were logged with; correct them to re-price.",
+      "Set the household's hourly rate, in cents, from `effectiveFrom` on (e.g. €15/h from 2027-01-01 is centsPerHour 1500, effectiveFrom 2027-01-01). Target: always \"home\". It must start after the latest household rate. It then applies to every active sitter, and to every sitter registered later; a sitter whose own rate (SetSitterRate) starts on or after that date keeps theirs. Applying it to the sitters takes a moment: check a sitter's rates in SitterBalance. Shifts already logged keep their price; correct them to re-price.",
   },
 ) {}

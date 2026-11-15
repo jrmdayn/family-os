@@ -7,6 +7,7 @@ import {
   UnknownPayment,
 } from "../src/Babysitting/CancelPayment.command.ts";
 import { DateInFuture } from "../src/Babysitting/DateInFuture.rejection.ts";
+import { HOME } from "../src/Babysitting/Household.ts";
 import { ShiftLogged } from "../src/Babysitting/LogShift.command.ts";
 import { Payouts } from "../src/Babysitting/Payouts.view.ts";
 import {
@@ -20,22 +21,22 @@ import { SitterStatement } from "../src/Babysitting/SitterStatement.view.ts";
 import { UnknownSitter } from "../src/Babysitting/UnknownSitter.rejection.ts";
 import {
   ana,
+  anaBook,
   ANA_IBAN,
   anaJoined,
   asOwner,
-  home,
   maria,
+  mariaBook,
   MARIA_IBAN,
   mariaFriday,
   mariaJoined,
-  rate2026,
+  sitterRate2026,
   story,
   sunday,
 } from "./fixtures.ts";
 
 const mariaMonday = new ShiftLogged({
-  shiftId: "maria-2026-11-09",
-  sitterId: maria,
+  shiftId: "2026-11-09",
   date: "2026-11-09",
   minutes: 120,
   centsPerHour: 1500,
@@ -45,8 +46,7 @@ const mariaMonday = new ShiftLogged({
 });
 
 const anaWednesday = new ShiftLogged({
-  shiftId: "ana-2026-11-11",
-  sitterId: ana,
+  shiftId: "2026-11-11",
   date: "2026-11-11",
   minutes: 180,
   centsPerHour: 1500,
@@ -56,8 +56,7 @@ const anaWednesday = new ShiftLogged({
 });
 
 const paidMaria = new PaymentRecorded({
-  paymentId: "maria-paid-2026-11-15",
-  sitterId: maria,
+  paymentId: "paid-2026-11-15",
   date: "2026-11-15",
   amount: 6000,
   balanceAfter: 0,
@@ -67,8 +66,9 @@ describe("Payouts", () => {
   it.effect("lists what to wire to whom, with IBANs and a reference for the unpaid days", () =>
     story(
       sunday,
-      Story.given(home, rate2026, mariaJoined, anaJoined, mariaFriday, mariaMonday, anaWednesday),
-      Story.view(Payouts, home, {
+      Story.given(mariaBook, mariaJoined, sitterRate2026, mariaFriday, mariaMonday),
+      Story.given(anaBook, anaJoined, sitterRate2026, anaWednesday),
+      Story.view(Payouts, HOME, {
         payouts: [
           {
             sitterId: ana,
@@ -93,13 +93,12 @@ describe("Payouts", () => {
   it.effect("drops a sitter once paid, and starts their next period afresh", () =>
     story(
       sunday,
-      Story.given(home, rate2026, mariaJoined, mariaFriday, paidMaria),
-      Story.view(Payouts, home, { payouts: [], total: 0 }),
+      Story.given(mariaBook, mariaJoined, sitterRate2026, mariaFriday, paidMaria),
+      Story.view(Payouts, HOME, { payouts: [], total: 0 }),
       Story.given(
-        home,
+        mariaBook,
         new ShiftLogged({
-          shiftId: "maria-2026-11-15",
-          sitterId: maria,
+          shiftId: "2026-11-15",
           date: "2026-11-15",
           minutes: 60,
           centsPerHour: 1500,
@@ -108,7 +107,7 @@ describe("Payouts", () => {
           balanceAfter: 1500,
         }),
       ),
-      Story.view(Payouts, home, (payouts) => {
+      Story.view(Payouts, HOME, (payouts) => {
         const [payout] = payouts.payouts;
         if (payout?.reference !== "Babysitting 2026-11-15" || payout.amount !== 1500) {
           throw new Error(`unexpected payout ${JSON.stringify(payout)}`);
@@ -122,18 +121,18 @@ describe("RecordPayment", () => {
   it.effect("pays the whole balance today by default", () =>
     story(
       sunday,
-      Story.given(home, rate2026, mariaJoined, mariaFriday),
+      Story.given(mariaBook, mariaJoined, sitterRate2026, mariaFriday),
       asOwner,
-      Story.when(home, new RecordPayment({ sitterId: maria })),
-      Story.then(home, paidMaria),
-      Story.replied({ paymentId: "maria-paid-2026-11-15", amount: 6000, balance: 0 }),
-      Story.view(SitterBalance, maria, {
+      Story.when(mariaBook, new RecordPayment()),
+      Story.then(mariaBook, paidMaria),
+      Story.replied({ paymentId: "paid-2026-11-15", amount: 6000, balance: 0 }),
+      Story.view(SitterBalance, mariaBook, {
         balance: 0,
         lastPayment: { date: "2026-11-15", amount: 6000 },
       }),
-      Story.emitted(SitterStatement, maria, [
+      Story.emitted(SitterStatement, mariaBook, [
         { kind: "shift", amount: 6000, balance: 6000 },
-        { kind: "payment", reference: "maria-paid-2026-11-15", amount: -6000, balance: 0 },
+        { kind: "payment", reference: "paid-2026-11-15", amount: -6000, balance: 0 },
       ]),
     ),
   );
@@ -141,28 +140,26 @@ describe("RecordPayment", () => {
   it.effect("records a partial payment on a given day", () =>
     story(
       sunday,
-      Story.given(home, rate2026, mariaJoined, mariaFriday),
+      Story.given(mariaBook, mariaJoined, sitterRate2026, mariaFriday),
       asOwner,
-      Story.when(home, new RecordPayment({ sitterId: maria, amount: 2000, date: "2026-11-14" })),
+      Story.when(mariaBook, new RecordPayment({ amount: 2000, date: "2026-11-14" })),
       Story.then(
-        home,
+        mariaBook,
         new PaymentRecorded({
-          paymentId: "maria-paid-2026-11-14",
-          sitterId: maria,
+          paymentId: "paid-2026-11-14",
           date: "2026-11-14",
           amount: 2000,
           balanceAfter: 4000,
         }),
       ),
-      Story.view(Payouts, home, (payouts) => {
+      Story.view(Payouts, HOME, (payouts) => {
         if (payouts.payouts[0]?.amount !== 4000) throw new Error("Maria should still be owed 4000");
       }),
-      Story.when(home, new RecordPayment({ sitterId: maria })),
+      Story.when(mariaBook, new RecordPayment()),
       Story.then(
-        home,
+        mariaBook,
         new PaymentRecorded({
-          paymentId: "maria-paid-2026-11-15",
-          sitterId: maria,
+          paymentId: "paid-2026-11-15",
           date: "2026-11-15",
           amount: 4000,
           balanceAfter: 0,
@@ -174,11 +171,12 @@ describe("RecordPayment", () => {
   it.effect("refuses to pay more than is owed, or when nothing is", () =>
     story(
       sunday,
-      Story.given(home, rate2026, mariaJoined, anaJoined, mariaFriday),
+      Story.given(mariaBook, mariaJoined, sitterRate2026, mariaFriday),
+      Story.given(anaBook, anaJoined, sitterRate2026),
       asOwner,
-      Story.when(home, new RecordPayment({ sitterId: maria, amount: 7000 })),
+      Story.when(mariaBook, new RecordPayment({ amount: 7000 })),
       Story.rejected(new MoreThanOwed({ sitterId: maria, balance: 6000, amount: 7000 })),
-      Story.when(home, new RecordPayment({ sitterId: ana })),
+      Story.when(anaBook, new RecordPayment()),
       Story.rejected(new NothingOwed({ sitterId: ana, balance: 0 })),
     ),
   );
@@ -186,11 +184,11 @@ describe("RecordPayment", () => {
   it.effect("refuses an unknown sitter or a future date", () =>
     story(
       sunday,
-      Story.given(home, rate2026, mariaJoined, mariaFriday),
+      Story.given(mariaBook, mariaJoined, sitterRate2026, mariaFriday),
       asOwner,
-      Story.when(home, new RecordPayment({ sitterId: ana })),
+      Story.when(anaBook, new RecordPayment()),
       Story.rejected(new UnknownSitter({ sitterId: ana })),
-      Story.when(home, new RecordPayment({ sitterId: maria, date: "2026-11-16" })),
+      Story.when(mariaBook, new RecordPayment({ date: "2026-11-16" })),
       Story.rejected(new DateInFuture({ date: "2026-11-16", today: "2026-11-15" })),
     ),
   );
@@ -200,35 +198,35 @@ describe("CancelPayment", () => {
   it.effect("cancels a payment: its amount is owed again", () =>
     story(
       sunday,
-      Story.given(home, rate2026, mariaJoined, mariaFriday, paidMaria),
+      Story.given(mariaBook, mariaJoined, sitterRate2026, mariaFriday, paidMaria),
       asOwner,
-      Story.when(home, new CancelPayment({ paymentId: "maria-paid-2026-11-15" })),
+      Story.when(mariaBook, new CancelPayment({ paymentId: "paid-2026-11-15" })),
       Story.then(
-        home,
+        mariaBook,
         new PaymentCancelled({
-          paymentId: "maria-paid-2026-11-15",
-          sitterId: maria,
+          paymentId: "paid-2026-11-15",
           date: "2026-11-15",
           amount: 6000,
           balanceAfter: 6000,
         }),
       ),
-      Story.replied({ paymentId: "maria-paid-2026-11-15", balance: 6000 }),
-      Story.view(SitterBalance, maria, { balance: 6000 }),
-      Story.view(Payouts, home, (payouts) => {
+      Story.replied({ paymentId: "paid-2026-11-15", balance: 6000 }),
+      Story.view(SitterBalance, mariaBook, { balance: 6000 }),
+      Story.view(Payouts, HOME, (payouts) => {
         if (payouts.total !== 6000) throw new Error("Maria should be owed 6000 again");
       }),
-      Story.when(home, new CancelPayment({ paymentId: "maria-paid-2026-11-15" })),
-      Story.rejected(new PaymentAlreadyCancelled({ paymentId: "maria-paid-2026-11-15" })),
+      Story.when(mariaBook, new CancelPayment({ paymentId: "paid-2026-11-15" })),
+      Story.rejected(new PaymentAlreadyCancelled({ paymentId: "paid-2026-11-15" })),
     ),
   );
 
   it.effect("refuses an unknown payment", () =>
     story(
       sunday,
+      Story.given(mariaBook, mariaJoined),
       asOwner,
-      Story.when(home, new CancelPayment({ paymentId: "maria-paid-2026-11-15" })),
-      Story.rejected(new UnknownPayment({ paymentId: "maria-paid-2026-11-15" })),
+      Story.when(mariaBook, new CancelPayment({ paymentId: "paid-2026-11-15" })),
+      Story.rejected(new UnknownPayment({ paymentId: "paid-2026-11-15" })),
     ),
   );
 });

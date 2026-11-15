@@ -24,8 +24,9 @@ Any session, in the cloud or on a laptop, starts with the right tools, reference
 
 No Cloudflare account needed.
 
-- [x] Checked whether `LogShift` could read the rate from a separate aggregate: it can't (a decision reads only its own state), so the rate and the sitters live in one `Ledger` aggregate. See [Decisions](/decisions/).
-- [x] `Ledger` aggregate (id `home`): `SetHourlyRate`, `RegisterSitter`, `UpdateSitter`, `ArchiveSitter`, `LogShift`, `CorrectShift`, `CancelShift`, `RecordPayment`, `CancelPayment`.
+- [x] Checked whether `LogShift` could read the rate from a separate aggregate: it can't (a decision reads only its own state). First modeled as one `Ledger` aggregate, then split: each sitter keeps their own rates, and policies copy the household rate to them. See [Decisions](/decisions/).
+- [x] `Sitter` aggregate (one per sitter): `RegisterSitter`, `UpdateSitter`, `ArchiveSitter`, `SetSitterRate`, `LogShift`, `CorrectShift`, `CancelShift`, `RecordPayment`, `CancelPayment`.
+- [x] `RateCard` aggregate (id `home`): `SetHourlyRate`, applied to every active sitter by the `HourlyRateRollout` policy and to new sitters by `HourlyRateOnboarding`.
 - [x] Views: `SitterDirectory`, `HourlyRates`, `SitterBalance`, `SitterStatement`, `Payouts`.
 - [x] `OwnerApi`, with descriptions written for an LLM: ISO dates, Europe/Paris, amounts in cents, replies that echo what was recorded.
 - [x] Stories for every rule, and Api tests with the session middleware.

@@ -1,21 +1,18 @@
 import * as Domain from "@alchemy.run/domain";
 import * as Schema from "effect/Schema";
-import { PositiveCents } from "../Money.ts";
 import { Session } from "../Session.middleware.ts";
-import { IsoDate } from "../Time.ts";
-import { Ledger } from "./Ledger.aggregate.ts";
+import { Rate } from "./Rate.ts";
+import { RateCard } from "./RateCard.aggregate.ts";
 import { anySignedInCaller } from "./signedIn.ts";
 
-/** Every hourly rate, oldest first. */
+/** The household's hourly rates, oldest first. */
 export class HourlyRates extends Domain.View(
   "HourlyRates",
   {
-    from: [Ledger],
-    key: Ledger,
+    from: [RateCard],
+    key: RateCard,
     middleware: [Session],
-    state: Schema.Struct({
-      rates: Schema.Array(Schema.Struct({ centsPerHour: PositiveCents, effectiveFrom: IsoDate })),
-    }),
+    state: Schema.Struct({ rates: Schema.Array(Rate) }),
     initial: { rates: [] },
     evolve: {
       HourlyRateSet: (v, e) => ({
@@ -25,7 +22,7 @@ export class HourlyRates extends Domain.View(
   },
   {
     description:
-      'The hourly rates paid to every sitter, in cents, oldest first. A rate applies from its effectiveFrom date until the next one. Key: always "home".',
+      "The household's hourly rates, in cents, oldest first: what every sitter is paid unless they have their own rate. A rate applies from its effectiveFrom date until the next one. A sitter's own rates are in their SitterBalance. Key: always \"home\".",
   },
 ) {}
 

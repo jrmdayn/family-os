@@ -5,6 +5,16 @@ description: The choices behind Family OS, with the reason for each.
 
 Each entry records a choice, why it was made, and what would make us revisit it. Newest first.
 
+## One `Sitter` aggregate per babysitter, and the rate copied to each
+
+**Decision.** Each sitter is its own `Sitter` aggregate, keyed by their id: their details, their own rate schedule, their balance, shifts and payments. The household rate lives in a `RateCard` aggregate (id `home`). `SetHourlyRate` changes it, and two policies copy it into the sitters' schedules: `HourlyRateRollout` sends each new rate to every active sitter, and `HourlyRateOnboarding` sends the whole schedule to a sitter when they register. `SetSitterRate` changes one sitter's rate. Names and nicknames are no longer unique; `SitterDirectory` lists the ones several active sitters share. This replaces the single `Ledger` aggregate below. See [The babysitting model](/building/babysitting-model/).
+
+**Why.** Every rule about money is about one sitter (a balance, a payment that can't exceed it, archiving at zero), so a sitter is the natural consistency boundary. The household-wide ledger held state no decision needed together. Pricing still happens in `LogShift`, from the sitter's own copy of the rates, so the reply still carries the amount. Unique names were the other rule spanning sitters; keeping it would have needed a claim aggregate per name and an asynchronous registration. Its only purpose was an unambiguous lookup, and the directory now handles that by flagging shared names. A sitter with their own rate also becomes possible.
+
+**Trade-offs.** The household rate reaches the sitters through policies, a moment after `SetHourlyRate` replies. If a sitter registers at the very moment the rate changes, the directory the rollout reads may not list them yet and they can miss that rate; `SitterBalance` shows each sitter's rates, and `SetSitterRate` fixes one. A household rate also doesn't override a sitter's own rate that starts on or after the same date.
+
+**Revisit if** sitters miss rate changes in practice, or the household rate must be enforced rather than copied.
+
 ## Every pull request gets a preview stage
 
 **Decision.** CI deploys each pull request from this repository to its own stage, `pr-<number>`, comments the URLs on the pull request, and destroys the stage when the pull request closes. Previews use the same Cloudflare account and CI token as prod. See [Deploying](/building/deploying/).
@@ -43,11 +53,13 @@ Each entry records a choice, why it was made, and what would make us revisit it.
 
 ## Shift and payment ids are readable
 
-**Decision.** A shift's id is `<sitter>-<date>` (`maria-2026-11-13`, then `-2`, `-3` for more that day); a payment's is `<sitter>-paid-<date>`. A sitter's id is a slug of their name.
+**Decision.** A shift's id, within its sitter, is its date (`2026-11-13`, then `-2`, `-3` for more that day); a payment's is `paid-<date>`. A sitter's id is a slug of their name, chosen when they are registered. (Under the single `Ledger`, shift ids carried the sitter too: `maria-2026-11-13`.)
 
 **Why.** Decisions must be deterministic, so ids can't be random. Readable ids also let a person or an LLM refer to "Maria's shift on the 13th" without a lookup table.
 
 ## One `Ledger` aggregate holds the rate and the sitters
+
+*Superseded by "One `Sitter` aggregate per babysitter" above.*
 
 **Decision.** The whole babysitting ledger is one aggregate with the constant id `home`: the rate schedule, the sitters and their balances, and every shift and payment. This replaces the earlier plan of a `RateCard` aggregate plus one `Sitter` aggregate per babysitter.
 
@@ -59,7 +71,7 @@ Each entry records a choice, why it was made, and what would make us revisit it.
 
 **Decision.** There is no `Household` aggregate and no household id on anything. One deployment serves one household.
 
-**Why.** Tenancy protects no rule here: one deployment is one household, and carrying a household id everywhere would only add noise. (The ledger is a single-instance aggregate for a different reason; see above.) A second adult is one more email on the sign-in allowlist, not a change to the model.
+**Why.** Tenancy protects no rule here: one deployment is one household, and carrying a household id everywhere would only add noise. (The rate card is a single-instance aggregate for a different reason: there is one household rate.) A second adult is one more email on the sign-in allowlist, not a change to the model.
 
 **Revisit if** one deployment ever has to serve several families.
 

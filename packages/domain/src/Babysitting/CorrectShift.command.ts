@@ -4,18 +4,17 @@ import { Cents, PositiveCents } from "../Money.ts";
 import { Session } from "../Session.middleware.ts";
 import { IsoDate, Minutes } from "../Time.ts";
 import { DateInFuture } from "./DateInFuture.rejection.ts";
-import { LedgerId } from "./Ledger.id.ts";
 import { NoRateForDate } from "./NoRateForDate.rejection.ts";
 import { ShiftId } from "./Shift.id.ts";
 import { ShiftAlreadyCancelled } from "./ShiftAlreadyCancelled.rejection.ts";
 import { SitterId } from "./Sitter.id.ts";
 import { SitterNotActive } from "./SitterNotActive.rejection.ts";
 import { UnknownShift } from "./UnknownShift.rejection.ts";
+import { UnknownSitter } from "./UnknownSitter.rejection.ts";
 
-/** A logged shift was corrected, and re-priced at the rate of its (new) day. */
+/** A logged shift was corrected, and re-priced at the sitter's rate of its (new) day. */
 export class ShiftCorrected extends Domain.Event("ShiftCorrected", {
   shiftId: ShiftId,
-  sitterId: SitterId,
   date: IsoDate,
   minutes: Minutes,
   centsPerHour: PositiveCents,
@@ -34,7 +33,7 @@ export class NothingToCorrect extends Domain.Rejection(
 export class CorrectShift extends Domain.Command(
   "CorrectShift",
   {
-    target: LedgerId,
+    target: SitterId,
     middleware: [Session],
     input: {
       shiftId: ShiftId,
@@ -44,6 +43,7 @@ export class CorrectShift extends Domain.Command(
     },
     events: [ShiftCorrected],
     rejects: [
+      UnknownSitter,
       UnknownShift,
       ShiftAlreadyCancelled,
       NothingToCorrect,
@@ -55,6 +55,6 @@ export class CorrectShift extends Domain.Command(
   },
   {
     description:
-      "Correct a logged shift's date, minutes or note. Fields left out stay as they are. The shift is re-priced at the rate in force on its date, which also applies a rate change made after it was logged. To move a shift to another sitter, cancel it and log a new one.",
+      "Correct one of a sitter's logged shifts: its date, minutes or note. Fields left out stay as they are. The shift is re-priced at the sitter's rate in force on its date, which also applies a rate change made after it was logged. To move a shift to another sitter, cancel it and log a new one.",
   },
 ) {}

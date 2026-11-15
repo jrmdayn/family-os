@@ -1,20 +1,19 @@
 import * as Schema from "effect/Schema";
 
 /**
- * A logged shift: the sitter and the day, plus a counter when the sitter
- * babysat more than once that day (`maria-2026-11-13`, `maria-2026-11-13-2`).
+ * A logged shift, unique within its sitter: the day, plus a counter when the
+ * sitter babysat more than once that day (`2026-11-13`, `2026-11-13-2`).
  */
 export const ShiftId = Schema.String.annotate({
-  description: 'A shift\'s id, "<sitter>-<date>" ("maria-2026-11-13"). Find it in SitterStatement.',
+  description:
+    'A shift\'s id within its sitter: its date, plus "-2", "-3" for more shifts that day ("2026-11-13"). Find it in SitterStatement.',
 });
 export type ShiftId = typeof ShiftId.Type;
 
-/**
- * A recorded payment: the sitter and the day it was made
- * (`maria-paid-2026-11-15`).
- */
+/** A recorded payment, unique within its sitter: `paid-2026-11-15`. */
 export const PaymentId = Schema.String.annotate({
-  description: 'A payment\'s id, "<sitter>-paid-<date>". Find it in SitterStatement.',
+  description:
+    'A payment\'s id within its sitter: "paid-<date>" ("paid-2026-11-15"). Find it in SitterStatement.',
 });
 export type PaymentId = typeof PaymentId.Type;
 

@@ -2,7 +2,7 @@
  * fos: every OwnerApi command and read as a subcommand.
  *
  *   pnpm fos --help
- *   pnpm fos log-shift --target home --sitter-id maria --date 2026-11-13 --minutes 240
+ *   pnpm fos log-shift --target maria --date 2026-11-13 --minutes 240
  *   pnpm fos payouts get --key home
  *
  * FAMILY_OS_URL is the Api's address (default http://localhost:8787, the dev
@@ -24,6 +24,7 @@ const fos = toCli(OwnerApi, {
   name: "fos",
   expose: [
     "SetHourlyRate",
+    "SetSitterRate",
     "RegisterSitter",
     "UpdateSitter",
     "ArchiveSitter",
