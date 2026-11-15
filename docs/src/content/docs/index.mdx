@@ -1,0 +1,51 @@
+---
+title: Overview
+description: A household admin app you talk to through an LLM, and how it is built.
+---
+
+Family OS takes care of the admin chores that come back every week at home. You don't open it to click through forms. You tell an LLM what happened, and the LLM calls Family OS over MCP:
+
+- "Maria 4h on Friday"
+- "What do I need to wire to whom?"
+- "I paid Maria"
+
+These docs explain how the app is built. They are written for someone reading the code, including a coding agent, rather than as a user manual.
+
+## The first chore: babysitting
+
+Several babysitters look after the kids. Every shift is logged, and on Sunday each babysitter gets a bank transfer for what they are owed. Family OS keeps the ledger:
+
+- **Sitters**: who babysits, with their name, nicknames and IBAN.
+- **Shifts**: who babysat on which day and for how long.
+- **Rate**: one hourly rate for every sitter, revised about once a year. Each shift records the rate that applied on its day.
+- **Payments**: the transfers made, which bring a sitter's balance back to zero.
+
+From that, Family OS answers "what do I owe whom", with the IBAN and a transfer reference ready to copy.
+
+## The stack
+
+Family OS is built on the CAFE stack:
+
+| | Role |
+|---|---|
+| **Cloudflare** | Runs everything: a Worker serves the app, and Durable Objects store the domain. |
+| **Alchemy** | Declares the infrastructure in TypeScript. **Alchemy Domain** models the business as commands, events, aggregates and views, and publishes it as HTTP, MCP and a CLI. |
+| **Foldkit** | The web app, built with the Elm Architecture on Effect. |
+| **Effect** | The runtime and the standard library underneath all of the above. |
+
+## How a request flows
+
+```text
+Claude (web, mobile, desktop)
+   │  MCP tool call, signed in with OAuth
+   ▼
+Cloudflare Worker  ── /mcp, /api, sign-in
+   │  OwnerApi: what a client may call
+   ▼
+Domain model  ── aggregates decide, events record, views answer
+   │
+   ▼
+Durable Objects  ── one per aggregate instance and per view key
+```
+
+The [roadmap](/roadmap/) says which parts of this exist today.

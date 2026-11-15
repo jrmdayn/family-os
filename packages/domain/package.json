@@ -1,0 +1,23 @@
+{
+  "name": "@family-os/domain",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The Family OS domain model: aggregates, commands, events, views, Apis and stories. Imports only @alchemy.run/domain and effect.",
+  "type": "module",
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@alchemy.run/domain": "catalog:",
+    "effect": "catalog:"
+  },
+  "devDependencies": {
+    "@effect/vitest": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

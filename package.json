@@ -1,0 +1,32 @@
+{
+  "name": "family-os",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test",
+    "typecheck": "pnpm -r --parallel typecheck",
+    "lint": "oxlint",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
+    "test": "pnpm -r test",
+    "docs:dev": "pnpm --filter @family-os/docs dev",
+    "docs:build": "pnpm --filter @family-os/docs build",
+    "repos:sync": "bash scripts/sync-repos.sh"
+  },
+  "devDependencies": {
+    "oxfmt": "catalog:",
+    "oxlint": "catalog:",
+    "typescript": "catalog:"
+  },
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "24.11.1",
+      "onFail": "download"
+    }
+  },
+  "engines": {
+    "node": ">=24.11.1"
+  },
+  "packageManager": "pnpm@12.21.0"
+}

@@ -1,0 +1,16 @@
+{
+  "name": "@family-os/docs",
+  "version": "0.0.0",
+  "private": true,
+  "description": "How Family OS is built. Astro + Starlight, public.",
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "catalog:",
+    "astro": "catalog:"
+  }
+}

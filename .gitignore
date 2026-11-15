@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.astro/
+.alchemy/
+.env
+.env.*
+!.env.example
+.DS_Store
+*.log
+
+# Reference sources, cloned by scripts/sync-repos.sh
+repos/

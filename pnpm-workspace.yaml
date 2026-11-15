@@ -1,0 +1,31 @@
+packages:
+  - packages/*
+  - docs
+
+# One version of each dependency across the workspace. Bump alchemy, its
+# @alchemy.run/* packages and effect together, then run `pnpm repos:sync` so
+# the reference sources in repos/ match what we run.
+catalog:
+  # Alchemy (infrastructure + Domain)
+  alchemy: 2.0.0-beta.87
+  "@alchemy.run/cloudflare": 2.0.0-beta.87
+  "@alchemy.run/domain": 2.0.0-beta.87
+  # Effect
+  effect: 4.1.4
+  "@effect/platform-node": 4.1.4
+  "@effect/vitest": 4.1.4
+  # Frontend
+  foldkit: 0.170.0
+  # Docs
+  astro: 7.4.12
+  "@astrojs/starlight": 0.43.1
+  # Tooling
+  oxfmt: 0.78.0
+  oxlint: 1.93.0
+  typescript: 7.0.2
+  vitest: 5.1.0
+
+# Packages allowed to link the agent skills they ship into .claude/skills.
+permissions:
+  "@alchemy.run/domain":
+    skills: true

@@ -1,0 +1,8 @@
+# pnpm
+/alchemy-domain
+# pnpm end
+# sync-repos
+/foldkit
+/generate-program
+/audit-program
+# sync-repos end
