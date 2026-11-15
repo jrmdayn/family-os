@@ -107,7 +107,12 @@ export class Payouts extends Domain.View(
         updated(v, source.id, (account) => settledIfZero({ ...account, balance: e.balanceAfter })),
       PaymentCancelled: (v, e, { source }) =>
         updated(v, source.id, (account) => ({ ...account, balance: e.balanceAfter })),
+      // Every other sitter event changes nothing here, but taking it moves the view
+      // past it, so a read `atLeast` any sitter command's receipt returns.
+      Sitter: (v) => v,
     },
+    // 1: takes every sitter event.
+    version: 1,
   },
   {
     description:

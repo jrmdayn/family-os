@@ -5,6 +5,14 @@ description: The choices behind Family OS, with the reason for each.
 
 Each entry records a choice, why it was made, and what would make us revisit it. Newest first.
 
+## Every view that reads sitters takes every sitter event
+
+**Decision.** `SitterDirectory`, `Payouts` and `SitterStatement` each get a handler keyed by the source name, `Sitter`, that changes nothing (`(v) => v` in `evolve`, `() => undefined` in `emit`); the handlers keyed by event tag still take precedence. `SitterBalance` already handled every sitter event. The three views went to `version: 1`, so each deployed stage rebuilds them from the history and their checkpoints catch up with the events recorded before.
+
+**Why.** On `dev`, reading `Payouts` with the receipt of `ArchiveSitter` (`Sitter/maria`, version 5) failed after 10 seconds with `ConsistencyTimeout`, and so did an Api test reading every sitter view with each sitter command's receipt, in memory, at its first read (`SitterStatement` with the receipt of `RegisterSitter`). A view only receives the events it has a handler for, and a view `get` with `atLeast` compares the stream's version with the last one the view received, so it waits for an event that never comes. Alchemy Domain handles this for queries with `waitsFor` (they read the command's events back and wait only for the ones the projection consumes), but not for view reads, and our clients (Claude over MCP, `fos`, the web app in M5) read views with the receipt they got. Telling the LLM which receipts are safe for which view would be a rule it can get wrong; making every receipt safe costs one stored no-op per event per view.
+
+**Revisit if** Alchemy Domain's view reads learn to skip the events a view doesn't consume (then the catch-alls can go), or a view reads a source whose events are mostly irrelevant to it and the extra writes start to matter.
+
 ## A household view reads `null` until its first event, and its description says so
 
 **Decision.** On a new household, `SitterDirectory` and `Payouts` read as `null` until the first sitter is registered, and `HourlyRates` until the first `SetHourlyRate` (over MCP, `{"value": null}`). We leave that as it is, and each of the three views' descriptions tells the LLM what `null` means: no sitters yet, nothing to wire, no household rate yet. The same change made `RegisterSitter`, `UpdateSitter` and `ArchiveSitter` reply with what they recorded, as every other command already did.

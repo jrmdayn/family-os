@@ -71,6 +71,54 @@ it.live("the owner sets the rate, logs a shift, sees what to wire, and records t
   }).pipe(Effect.scoped, Effect.provide(World)),
 );
 
+it.live(
+  "every sitter view can be read atLeast any sitter command's receipt",
+  () =>
+    Effect.gen(function* () {
+      const api = yield* signedInWith(TOKEN);
+      // A view only receives the events it consumes, so a receipt for one it skipped
+      // would never be reached, and the read would end in ConsistencyTimeout.
+      const readAll = (receipt: { readonly stream: string; readonly version: number }) =>
+        Effect.all([
+          api.SitterDirectory.get(HOME, { atLeast: receipt }),
+          api.Payouts.get(HOME, { atLeast: receipt }),
+          api.SitterBalance.get(maria, { atLeast: receipt }),
+          api.SitterStatement.list(maria, { atLeast: receipt }),
+        ]);
+
+      yield* readAll(yield* api.RegisterSitter(maria, { name: "Maria" }));
+      yield* readAll(
+        yield* api.SetSitterRate(maria, { centsPerHour: 1500, effectiveFrom: "2026-01-01" }),
+      );
+      yield* readAll(yield* api.UpdateSitter(maria, { aliases: ["Mari"] }));
+      const logged = yield* api.LogShift(maria, { date: "2026-11-13", minutes: 240 });
+      yield* readAll(logged);
+      const { shiftId } = logged.reply;
+      yield* readAll(yield* api.CorrectShift(maria, { shiftId, minutes: 180 }));
+      const paid = yield* api.RecordPayment(maria, { date: "2026-11-15" });
+      yield* readAll(paid);
+      yield* readAll(yield* api.CancelPayment(maria, { paymentId: paid.reply.paymentId }));
+      yield* readAll(yield* api.CancelShift(maria, { shiftId }));
+      const [directory, payouts, balance, statement] = yield* readAll(
+        yield* api.ArchiveSitter(maria, {}),
+      );
+
+      expect(directory?.sitters[maria]).toMatchObject({ aliases: ["Mari"], active: false });
+      expect(payouts).toMatchObject({ payouts: [], total: 0 });
+      expect(balance).toMatchObject({ active: false, balance: 0 });
+      // Events that add no line still add none.
+      expect(statement.entries.map((entry) => entry.event.kind)).toEqual([
+        "shift",
+        "shift-corrected",
+        "payment",
+        "payment-cancelled",
+        "shift-cancelled",
+      ]);
+    }).pipe(Effect.scoped, Effect.provide(World)),
+  // Long enough to see a ConsistencyTimeout (10 seconds) rather than the test's own timeout.
+  30_000,
+);
+
 it.live("a rejection reaches the client as its typed error", () =>
   Effect.gen(function* () {
     const api = yield* signedInWith(TOKEN);

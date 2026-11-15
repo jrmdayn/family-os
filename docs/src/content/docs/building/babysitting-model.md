@@ -77,6 +77,8 @@ Each event carries the outcome the decision worked out, such as `amount` and `ba
 
 `SitterDirectory` and `Payouts` are keyed by the value `home` and read every sitter's events (`keyOf` routes them all to `home`).
 
+Every view that reads sitters takes every sitter event, including the ones that change nothing in it: a catch-all handler keyed by the source name, `Sitter`, returns the state unchanged (or, in `SitterStatement`, adds no line). A view only receives the events it has a handler for, and `atLeast` waits until the view has applied that version of the stream, so without the catch-all, reading `Payouts` with the receipt of `ArchiveSitter` would wait for an event that never comes and fail with `ConsistencyTimeout`. See [Decisions](/decisions/). A view added later that reads `Sitter` needs the same catch-all; the Api test "every sitter view can be read atLeast any sitter command's receipt" checks the four that exist.
+
 A view key that no event has reached reads as `null`, and Alchemy Domain has no setting to make it read as an empty state instead (`initial` is only what the first event is applied to). So on a new household, `SitterDirectory` and `Payouts` are `null` until the first sitter is registered, and `HourlyRates` until the first `SetHourlyRate`. Their descriptions tell the LLM what that `null` means. For `SitterBalance`, `null` means no sitter has that id.
 
 ## From a sentence to a shift

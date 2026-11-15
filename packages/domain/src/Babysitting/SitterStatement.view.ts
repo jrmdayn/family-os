@@ -89,7 +89,12 @@ export class SitterStatement extends Domain.View(
           amount: e.amount,
           balance: e.balanceAfter,
         }),
+      // Every other sitter event adds no line, but taking it moves the view past it,
+      // so a read `atLeast` any sitter command's receipt returns.
+      Sitter: () => undefined,
     },
+    // 1: takes every sitter event.
+    version: 1,
   },
   {
     description:

@@ -189,7 +189,7 @@ The local dev server applied the policy before the next call every time we tried
 
 Claude lists each line of `payouts`, here €60 to Maria with her IBAN and the transfer reference to copy, and the total. The `Payouts` description also tells it that each transfer is recorded with `RecordPayment` afterwards.
 
-Views update a moment after a command replies. Claude can wait for its own write by passing the receipt it got as `atLeast`, for example `{ "key": "home", "atLeast": { "stream": "Sitter/maria", "version": 3 } }`. The read then waits until the view has applied that version, up to 10 seconds.
+Views update a moment after a command replies. Claude can wait for its own write by passing the receipt it got as `atLeast`, for example `{ "key": "home", "atLeast": { "stream": "Sitter/maria", "version": 3 } }`. The read then waits until the view has applied that version, up to 10 seconds. Any sitter command's receipt works with any of the sitter views, even when the command changed nothing they show (see [The babysitting model](/building/babysitting-model/#views)).
 
 ## 5. "I paid Maria"
 

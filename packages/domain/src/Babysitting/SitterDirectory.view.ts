@@ -83,7 +83,12 @@ export class SitterDirectory extends Domain.View(
         })),
       SitterArchived: (v, _, { source }) =>
         updated(v, source.id, (entry) => ({ ...entry, active: false })),
+      // Every other sitter event changes nothing here, but taking it moves the view
+      // past it, so a read `atLeast` any sitter command's receipt returns.
+      Sitter: (v) => v,
     },
+    // 1: takes every sitter event.
+    version: 1,
   },
   {
     description:
