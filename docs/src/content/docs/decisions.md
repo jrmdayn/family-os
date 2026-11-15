@@ -5,6 +5,14 @@ description: The choices behind Family OS, with the reason for each.
 
 Each entry records a choice, why it was made, and what would make us revisit it. Newest first.
 
+## A household view reads `null` until its first event, and its description says so
+
+**Decision.** On a new household, `SitterDirectory` and `Payouts` read as `null` until the first sitter is registered, and `HourlyRates` until the first `SetHourlyRate` (over MCP, `{"value": null}`). We leave that as it is, and each of the three views' descriptions tells the LLM what `null` means: no sitters yet, nothing to wire, no household rate yet. The same change made `RegisterSitter`, `UpdateSitter` and `ArchiveSitter` reply with what they recorded, as every other command already did.
+
+**Why.** Alchemy Domain has no initial state for reads: a view's `initial` is only the state its first event is applied to, and `get` of a key no event has reached returns nothing (`View.Host.get`, "`none` if it does not exist"; the view docs say "`null` if nothing has happened to that key yet"). Making the server or the Api turn `null` into an empty state would make `/api`, `/rpc` and `/mcp` disagree with the model and with its stories, for a case that lasts until the first command. A sentence in the description is what the LLM reads anyway, and it keeps one meaning per `null`: for `SitterBalance`, `null` still means there is no such sitter.
+
+**Revisit if** Alchemy Domain gets a way for `get` to return a view's initial state, or a client other than an LLM reads these views and trips on `null`.
+
 ## A long-lived `dev` stage, deployed on demand
 
 **Decision.** Besides `prod` and the `pr-<number>` previews, the stack has a `dev` stage that lives on, with its own data. Nothing deploys it on push: CI's `deploy-dev` job, started by hand from the Actions tab (`workflow_dispatch`), deploys any branch to it after the checks, and `pnpm deploy:dev` does the same from a laptop. Its server Worker is named `family-os-dev`, so its URL is stable (`https://family-os-dev.jrmdayn.workers.dev`) like prod's. It shares the Cloudflare account, the state store and the owner token with the other stages. See [Deploying](/building/deploying/#stages).

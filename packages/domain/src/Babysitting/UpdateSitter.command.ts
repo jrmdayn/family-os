@@ -25,9 +25,14 @@ export class UpdateSitter extends Domain.Command(
     },
     events: [SitterDetailsChanged],
     rejects: [UnknownSitter],
+    reply: {
+      name: Schema.String,
+      aliases: Schema.Array(Schema.String),
+      iban: Schema.NullOr(Schema.String),
+    },
   },
   {
     description:
-      "Change a sitter's name, nicknames (replaces the whole list) or IBAN (null removes it). Fields left out stay as they are. The sitter's id never changes.",
+      "Change a sitter's name, nicknames (replaces the whole list) or IBAN (null removes it). Fields left out stay as they are. The sitter's id never changes. Replies with the sitter's details after the change: name, nicknames, and IBAN as stored (upper case, no spaces) or null.",
   },
 ) {}

@@ -63,6 +63,15 @@ const paidMaria = new PaymentRecorded({
 });
 
 describe("Payouts", () => {
+  it.effect("has no state until the first sitter is registered, then nothing to wire", () =>
+    story(
+      sunday,
+      Story.view(Payouts, HOME, Story.none),
+      Story.given(mariaBook, mariaJoined),
+      Story.view(Payouts, HOME, { payouts: [], total: 0 }),
+    ),
+  );
+
   it.effect("lists what to wire to whom, with IBANs and a reference for the unpaid days", () =>
     story(
       sunday,

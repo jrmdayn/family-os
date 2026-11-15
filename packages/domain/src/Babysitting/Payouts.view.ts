@@ -111,7 +111,7 @@ export class Payouts extends Domain.View(
   },
   {
     description:
-      'What to wire to whom: `payouts` lists every sitter owed money, with the amount in cents, their IBAN and a transfer reference; `total` is the sum. After wiring, record each transfer with RecordPayment. Key: always "home".',
+      'What to wire to whom: `payouts` lists every sitter owed money, with the amount in cents, their IBAN and a transfer reference; `total` is the sum. After wiring, record each transfer with RecordPayment. Key: always "home". The value is null until the first sitter is registered: null means nothing to wire, not an error.',
   },
 ) {}
 

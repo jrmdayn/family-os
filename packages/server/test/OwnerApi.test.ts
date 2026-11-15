@@ -34,6 +34,11 @@ it.live("the owner sets the rate, logs a shift, sees what to wire, and records t
       name: "Maria",
       iban: "FR76 3000 6000 0112 3456 7890 189",
     });
+    expect(registered.reply).toEqual({
+      name: "Maria",
+      aliases: [],
+      iban: "FR7630006000011234567890189",
+    });
 
     // The household rate reaches a new sitter a moment after they register.
     const rated = yield* api.SitterBalance.get(maria, { atLeast: registered }).pipe(

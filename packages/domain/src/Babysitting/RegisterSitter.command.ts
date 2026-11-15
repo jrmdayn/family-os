@@ -33,9 +33,14 @@ export class RegisterSitter extends Domain.Command(
     },
     events: [SitterRegistered],
     rejects: [SitterAlreadyRegistered],
+    reply: {
+      name: Schema.String,
+      aliases: Schema.Array(Schema.String),
+      iban: Schema.NullOr(Schema.String),
+    },
   },
   {
     description:
-      'Register a new babysitter. Target: their new id, a slug of their name ("Ana Lucía" is "ana-lucia"). Give the name they go by, optional nicknames, and optionally the IBAN their pay is wired to. They get the household\'s hourly rates a moment later. Two sitters may share a name or nickname: SitterDirectory lists those in sharedNames.',
+      'Register a new babysitter. Target: their new id, a slug of their name ("Ana Lucía" is "ana-lucia"). Give the name they go by, optional nicknames, and optionally the IBAN their pay is wired to. Replies with what was recorded: the name, the nicknames, and the IBAN as stored (upper case, no spaces) or null. They get the household\'s hourly rates a moment later. Two sitters may share a name or nickname: SitterDirectory lists those in sharedNames.',
   },
 ) {}

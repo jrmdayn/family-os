@@ -181,16 +181,25 @@ it.live("/mcp serves every call as a tool, signed in with the owner's token", ()
     expect(anonymous.isError).toBe(true);
     expect(JSON.parse(anonymous.content[0].text)).toEqual({ _tag: "Unauthorized" });
 
+    // A household view reads null until something reaches it; its description says so.
+    const fresh = yield* call("OwnerApi_Payouts_get", { key: HOME }, TOKEN);
+    expect(fresh.structuredContent).toEqual({ value: null });
+
     yield* call(
       "OwnerApi_SetHourlyRate_send",
       { target: HOME, input: { centsPerHour: 1500, effectiveFrom: "2026-01-01" } },
       TOKEN,
     );
-    yield* call(
+    const registered = yield* call(
       "OwnerApi_RegisterSitter_send",
       { target: maria, input: { name: "Maria", iban: "FR76 3000 6000 0112 3456 7890 189" } },
       TOKEN,
     );
+    expect(registered.structuredContent).toEqual({
+      reply: { name: "Maria", aliases: [], iban: "FR7630006000011234567890189" },
+      stream: "Sitter/maria",
+      version: 1,
+    });
     // The household rate reaches a new sitter a moment after they register.
     const logged = yield* call(
       "OwnerApi_LogShift_send",

@@ -29,6 +29,7 @@ describe("SetHourlyRate", () => {
     story(
       sunday,
       asOwner,
+      Story.view(HourlyRates, rateCard, Story.none),
       Story.when(rateCard, new SetHourlyRate({ centsPerHour: 1500, effectiveFrom: "2026-01-01" })),
       Story.then(rateCard, rate2026),
       Story.replied({ centsPerHour: 1500, effectiveFrom: "2026-01-01" }),

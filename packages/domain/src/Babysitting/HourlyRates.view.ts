@@ -22,7 +22,7 @@ export class HourlyRates extends Domain.View(
   },
   {
     description:
-      "The household's hourly rates, in cents, oldest first: what every sitter is paid unless they have their own rate. A rate applies from its effectiveFrom date until the next one. A sitter's own rates are in their SitterBalance. Key: always \"home\".",
+      "The household's hourly rates, in cents, oldest first: what every sitter is paid unless they have their own rate. A rate applies from its effectiveFrom date until the next one. A sitter's own rates are in their SitterBalance. Key: always \"home\". The value is null until the first household rate is set with SetHourlyRate: null means no rates yet, not an error.",
   },
 ) {}
 
