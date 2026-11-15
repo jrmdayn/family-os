@@ -21,7 +21,7 @@ claude mcp add --transport http family-os https://family-os-dev.jrmdayn.workers.
   --header "Authorization: Bearer $FAMILY_OS_TOKEN"
 ```
 
-The shell expands `$FAMILY_OS_TOKEN` when you run the command, so Claude Code stores the value. In Claude Code, `/mcp` lists `family-os` with 15 tools, one per command and read of the `OwnerApi`, named `OwnerApi_<Name>_<operation>`:
+The shell expands `$FAMILY_OS_TOKEN` when you run the command, so Claude Code stores the value. `claude mcp get family-os` should report it as connected. The server offers 15 tools, one per command and read of the `OwnerApi`, named `OwnerApi_<Name>_<operation>`:
 
 | Tool | Does |
 |---|---|
