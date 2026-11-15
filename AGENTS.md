@@ -22,7 +22,7 @@ Skills: `alchemy-domain` (domain modeling, layout, stories, Cloudflare hosting) 
 ## Layout and conventions
 
 - `packages/domain` imports only `@alchemy.run/domain` and `effect`. No Cloudflare, no IO.
-- `packages/server` hosts the model and implements what it depends on (session middleware, local dev server). `packages/cli` is `fos`, the Api from a terminal. `packages/web` is the Foldkit app. `docs/` is the Astro + Starlight site.
+- `packages/server` hosts the model and implements what it depends on: the session middleware, the routes (`/rpc`, `/api`, `/mcp` in `Routes.ts`), the Cloudflare Worker on Durable Objects (`FamilyOsWorker.ts`) and the local dev server, which serves the same routes in memory. `packages/cli` is `fos`, the Api from a terminal. `packages/web` is the Foldkit app. `docs/` is the Astro + Starlight site.
 - The babysitting ledger is one `Sitter` aggregate per babysitter, keyed by the sitter's id, plus a `RateCard` aggregate (id `home`) holding the household rate, which policies copy to the sitters (see `docs/src/content/docs/building/babysitting-model.md`). Decisions are pure: they read only their aggregate's state and `now`.
 - Follow Alchemy Domain's project layout: one folder per subdomain (`Babysitting/`), one file per building block named `<Noun>.<kind>.ts` (`LogShift.command.ts`, `Sitter.aggregate.ts`, `Payouts.view.ts`, `OwnerApi.api.ts`, `Session.middleware.ts`). A command shares its file with its events and the rejections only it returns.
 - Money is integer cents (EUR). Durations are integer minutes. Dates are ISO `YYYY-MM-DD`, Europe/Paris.
@@ -43,6 +43,8 @@ pnpm docs:dev
 pnpm repos:sync
 pnpm exec alchemy plan --stage prod   # what a deploy would change (CI deploys prod on push to main, pr-<n> per pull request)
 ```
+
+Deploying needs `FAMILY_OS_TOKEN` (the owner's bearer token, at least 32 characters) besides the Cloudflare credentials: the Worker binds it as a secret.
 
 In a Claude Code cloud session, prefix Alchemy commands with `NODE_USE_ENV_PROXY=1`: otherwise Node bypasses the network proxy and Alchemy fails with "Transport error".
 

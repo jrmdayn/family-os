@@ -20,7 +20,9 @@
   },
   "devDependencies": {
     "@alchemy.run/cloudflare": "catalog:",
+    "@alchemy.run/domain": "catalog:",
     "@alchemy.run/github": "catalog:",
+    "@family-os/server": "workspace:*",
     "@types/node": "catalog:",
     "alchemy": "catalog:",
     "effect": "catalog:",

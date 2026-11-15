@@ -12,7 +12,7 @@ import * as Domain from "@alchemy.run/domain";
 import { toCli } from "@alchemy.run/domain/Cli";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { OwnerApi } from "@family-os/domain/OwnerApi.api";
+import { OwnerApi, ownerCalls } from "@family-os/domain/OwnerApi.api";
 import * as Command from "effect/cli/Command";
 import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
@@ -22,23 +22,7 @@ import * as Redacted from "effect/Redacted";
 
 const fos = toCli(OwnerApi, {
   name: "fos",
-  expose: [
-    "SetHourlyRate",
-    "SetSitterRate",
-    "RegisterSitter",
-    "UpdateSitter",
-    "ArchiveSitter",
-    "LogShift",
-    "CorrectShift",
-    "CancelShift",
-    "RecordPayment",
-    "CancelPayment",
-    "SitterDirectory.get",
-    "HourlyRates.get",
-    "SitterBalance.get",
-    "SitterStatement.list",
-    "Payouts.get",
-  ],
+  expose: ownerCalls,
   headers: Config.Redacted("FAMILY_OS_TOKEN").pipe(
     Config.withDefault(Redacted.make("dev-token")),
     Effect.map((token) => ({ authorization: `Bearer ${Redacted.value(token)}` })),
@@ -48,7 +32,8 @@ const fos = toCli(OwnerApi, {
 const Protocol = Layer.unwrap(
   Effect.map(
     Config.String("FAMILY_OS_URL").pipe(Config.withDefault("http://localhost:8787")),
-    (url) => Domain.protocolHttp(url),
+    // The Worker and the dev server serve the typed client's protocol at /rpc.
+    (url) => Domain.protocolHttp(`${url.replace(/\/$/, "")}/rpc`),
   ),
 ).pipe(Layer.provide(FetchHttpClient.layer));
 

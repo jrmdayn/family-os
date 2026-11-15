@@ -1,12 +1,14 @@
-import { Actor } from "@family-os/domain/Actor";
+import { Actor, owner } from "@family-os/domain/Actor";
 import { CurrentActor } from "@family-os/domain/CurrentActor.context";
 import { Session, Unauthorized } from "@family-os/domain/Session.middleware";
+import * as Config from "effect/Config";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Headers from "effect/http/Headers";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Redacted from "effect/Redacted";
+import * as Schema from "effect/Schema";
 
 /**
  * The bearer token that signs the owner in, and who it signs in as. A
@@ -17,6 +19,33 @@ export class OwnerToken extends Context.Service<
   OwnerToken,
   { readonly token: Redacted.Redacted<string>; readonly actor: Actor }
 >()("FamilyOs/OwnerToken") {}
+
+/**
+ * `FAMILY_OS_TOKEN`, at least 32 characters. An unset GitHub secret reaches
+ * CI as an empty string, and an empty token would match an empty bearer: the
+ * length check makes that deploy fail instead.
+ */
+const ownerTokenConfig = Config.schema(
+  Schema.Redacted(Schema.String.check(Schema.isMinLength(32))),
+  "FAMILY_OS_TOKEN",
+);
+
+/**
+ * The owner's token, read from `FAMILY_OS_TOKEN`. On the Worker, reading it
+ * while the Worker builds binds it as a secret at deploy, and reads it back
+ * from that binding at runtime. `fallback` is for the dev server only.
+ */
+export const OwnerTokenFromConfig = (options: { readonly fallback?: string } = {}) =>
+  Layer.effect(
+    OwnerToken,
+    Effect.gen(function* () {
+      const config = ownerTokenConfig;
+      const token = yield* options.fallback === undefined
+        ? config
+        : config.pipe(Config.withDefault(Redacted.make(options.fallback)));
+      return { token, actor: owner("bearer-token") };
+    }),
+  );
 
 /** Compares in time independent of where the strings differ, so timing leaks nothing. */
 const sameSecret = (given: string, expected: string): boolean => {
