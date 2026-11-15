@@ -29,7 +29,7 @@ Inside `domain`, there is one folder per part of the household (`Babysitting/`, 
 | Tool | Version source | Notes |
 |---|---|---|
 | Node 24 | `devEngines` in `package.json`, `.nvmrc` | pnpm downloads the right Node by itself, so scripts run on Node 24 even if the machine has another version. |
-| pnpm 12 | `packageManager` in `package.json` | Run it through Corepack. |
+| pnpm 12 | `packageManager` in `package.json` | Install it with Corepack (`npm install -g corepack@latest` first: the Corepack bundled with Node 24.11 cannot install pnpm 12) or, in CI, with `pnpm/action-setup`. |
 | Dependencies | `catalog:` in `pnpm-workspace.yaml` | Every package refers to the catalog, so one line changes a version everywhere. |
 | TypeScript 7 | catalog | `tsconfig.base.json` is strict, with `exactOptionalPropertyTypes` and `noUncheckedIndexedAccess`. |
 | vitest + `@effect/vitest` | catalog | Stories are written with `it.effect`. |

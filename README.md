@@ -10,9 +10,10 @@ Built on the CAFE stack: **C**loudflare, **A**lchemy (with Alchemy Domain), **F*
 
 ## Getting started
 
-Requires Corepack (bundled with Node). pnpm fetches Node 24 itself.
+Requires pnpm 12 (pnpm then fetches Node 24 itself). The Corepack bundled with Node 24.11 is too old for pnpm 12, so update it first:
 
 ```sh
+npm install -g corepack@latest
 corepack enable
 pnpm install
 pnpm repos:sync   # reference sources for Alchemy, Effect and Foldkit

@@ -11,8 +11,12 @@ fi
 cd "${CLAUDE_PROJECT_DIR:-.}"
 
 # pnpm comes from Corepack, at the version in package.json's packageManager.
+# pnpm 12 is a native executable that older Corepack releases (such as the one
+# bundled with Node 24.11) cannot install, so update Corepack when needed.
 export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-if ! pnpm --version 2>/dev/null | grep -qxF "$(node -p "require('./package.json').packageManager.split('@')[1]")"; then
+pnpm_version="$(node -p "require('./package.json').packageManager.split('@')[1]")"
+if ! pnpm --version 2>/dev/null | grep -qxF "$pnpm_version"; then
+  npm install -g corepack@latest
   corepack enable
 fi
 
