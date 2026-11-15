@@ -3,9 +3,12 @@
  * serving /rpc, /api and /mcp) and the public docs site.
  *
  *   pnpm deploy:prod    # what CI runs on every push to main
+ *   pnpm deploy:dev     # the long-lived dev stage, deployed on demand
  *
  * CI also deploys one `pr-<number>` stage per pull request, comments its URL
  * on the pull request, and destroys the stage when the pull request closes.
+ * Its `deploy-dev` job, started by hand from the Actions tab, deploys any
+ * branch to `dev`.
  *
  * Credentials come from CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID (see
  * stacks/github.ts and the "Deploy credentials" docs page), plus GITHUB_TOKEN

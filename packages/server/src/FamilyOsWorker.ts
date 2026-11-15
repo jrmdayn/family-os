@@ -31,15 +31,19 @@ const FamilyOsLive = SessionLive.pipe(
   Layer.provide(OwnerTokenFromConfig()),
 );
 
+/**
+ * The Worker's name, and so its workers.dev URL: stable for the long-lived
+ * stages, `prod` and `dev`. Other stages (`pr-<number>`, by hand) get a
+ * generated name.
+ */
+const workerName = (stage: string): string | undefined =>
+  stage === "prod" ? "family-os" : stage === "dev" ? "family-os-dev" : undefined;
+
 export default class FamilyOsWorker extends Cloudflare.Worker<FamilyOsWorker>()(
   "FamilyOsWorker",
   Effect.gen(function* () {
     const { stage } = yield* Stack;
-    return {
-      main: import.meta.url,
-      // A stable workers.dev URL in prod; other stages get a generated name.
-      name: stage === "prod" ? "family-os" : undefined,
-    } satisfies Cloudflare.WorkerProps;
+    return { main: import.meta.url, name: workerName(stage) } satisfies Cloudflare.WorkerProps;
   }),
   Effect.gen(function* () {
     return { fetch: yield* HttpRouter.toHttpEffect(Routes) };

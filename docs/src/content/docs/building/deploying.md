@@ -1,6 +1,6 @@
 ---
 title: Deploying
-description: How Family OS reaches Cloudflare. One Alchemy stack, deployed by CI on every push to main.
+description: How Family OS reaches Cloudflare. One Alchemy stack, deployed to prod on every push to main, to dev on demand, and to a preview per pull request.
 ---
 
 Everything that runs on Cloudflare is declared in one Alchemy stack, `alchemy.run.ts` at the repository root (`FamilyOs`): the server Worker and this docs site.
@@ -38,7 +38,13 @@ Every route goes through the `OwnerApi`'s handlers, so the `Session` middleware 
 
 **MCP over the sessionless protocol.** A Worker can't keep an MCP session open between requests, so `/mcp` serves MCP `2026-07-28`, the protocol revision without sessions: each request runs on its own and leaves nothing behind. Clients that only speak an older revision get an error. Claude Code speaks this revision.
 
-The prod Worker is named `family-os`, so its URL is stable: `https://family-os.jrmdayn.workers.dev`. Other stages get generated names, listed in the stack's outputs and in the preview comment.
+The Worker's name, and so its URL, depends on the stage (see [Stages](#stages)): `family-os` in prod, `family-os-dev` in dev, a generated name anywhere else.
+
+```ts
+// packages/server/src/FamilyOsWorker.ts
+const workerName = (stage: string): string | undefined =>
+  stage === "prod" ? "family-os" : stage === "dev" ? "family-os-dev" : undefined;
+```
 
 ## The docs site
 
@@ -57,22 +63,39 @@ const Docs = Cloudflare.Website.StaticSite("Docs", {
 
 `StaticSite` runs the build, hashes `docs/dist` and uploads it. The build only re-runs when a file under `docs/` or the lockfile changes, so a push that doesn't touch the docs deploys nothing. The prod stage serves at <https://family-os-docs.jrmdayn.workers.dev>.
 
-## CI deploys main, and a preview per pull request
+## Stages
 
-`.github/workflows/ci.yml` has four jobs:
+The stack is deployed under three kinds of stage. Each stage is a full copy of the stack with its own Workers and its own Durable Objects, so its own data.
+
+| Stage | For | Deployed | Server Worker URL |
+|---|---|---|---|
+| `prod` | The household's real ledger | by CI, on every push to `main` that passes the checks | `https://family-os.jrmdayn.workers.dev` |
+| `dev` | Trying a change on real Cloudflare before prod; the stage Claude Code is pointed at while building | on demand: CI's `deploy-dev` job, or `pnpm deploy:dev` | `https://family-os-dev.jrmdayn.workers.dev` |
+| `pr-<number>` | Reviewing one pull request | by CI, on every push to the pull request; destroyed when it closes | generated, posted in the preview comment |
+
+`dev` is long-lived: nothing deploys it on push, and nothing destroys it, so its data survives from one deploy to the next. Deploy any branch to it when you want to try that branch against real Durable Objects, then deploy another one later.
+
+All stages share the Cloudflare account, the Alchemy state store and the owner token (`FAMILY_OS_TOKEN`), so one token reaches the `/mcp` of any of them. Only the docs site keeps a generated name outside prod: the public docs are prod's.
+
+## CI deploys main, dev on demand, and a preview per pull request
+
+`.github/workflows/ci.yml` has five jobs:
 
 | Job | Runs on | Does |
 |---|---|---|
-| `check` | every push and pull request | typecheck, lint, format, tests, docs build |
+| `check` | every push, pull request and manual run | typecheck, lint, format, tests, docs build |
 | `deploy` | pushes to `main`, after `check` | `pnpm deploy:prod --yes`: the server Worker and the docs |
+| `deploy-dev` | a manual run ("Run workflow" in the Actions tab, on any branch), after `check` | `pnpm deploy:dev --yes`: the chosen branch to the `dev` stage |
 | `preview` | pull request opened, reopened or pushed to, after `check` | deploys the stage `pr-<number>` |
 | `preview-cleanup` | pull request closed or merged | destroys the stage `pr-<number>` |
 
-All of them use the `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` and `FAMILY_OS_TOKEN` secrets (see [Deploy credentials](/building/deploy-credentials/)). Previews bind the same owner token as prod.
+To deploy a branch to dev, open the CI workflow in the repository's Actions tab, choose "Run workflow" and pick the branch. GitHub only offers that button once the workflow, with its `workflow_dispatch` trigger, is on the default branch. `gh workflow run ci.yml --ref <branch>` does the same from a terminal.
+
+All of them use the `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` and `FAMILY_OS_TOKEN` secrets (see [Deploy credentials](/building/deploy-credentials/)). Previews and dev bind the same owner token as prod.
 
 A preview is a full copy of the stack under its own stage, with generated Worker names. When CI sets `PULL_REQUEST`, `alchemy.run.ts` also declares a `GitHub.Comment` on the pull request listing the preview's URLs (its `/mcp`, its OpenAPI document and its docs), using the workflow's own `GITHUB_TOKEN`. The comment keeps its logical id, so each push edits it in place, and it stays on the pull request after the preview is destroyed. Pull requests from forks get no preview, since they can't read the secrets.
 
-Deploys and destroys are never cancelled halfway: a newer push waits for the running one instead of interrupting it, so Alchemy's state is never left mid-apply. Only `check` is cancelled when a newer push supersedes it. The `preview` job checks the pull request is still open before deploying, so a pull request closed while its checks ran doesn't leave a preview behind. State lives in the account's state store, shared by CI, laptops and Claude Code cloud sessions.
+Deploys and destroys are never cancelled halfway: a newer push waits for the running one instead of interrupting it, so Alchemy's state is never left mid-apply. Only `check` is cancelled when a newer push supersedes it. Its concurrency group includes the event, so a manual run on `main` never cancels the checks of a push to `main`. Two dev deploys queue the same way: the second waits for the first. The `preview` job checks the pull request is still open before deploying, so a pull request closed while its checks ran doesn't leave a preview behind. State lives in the account's state store, shared by CI, laptops and Claude Code cloud sessions.
 
 ## Deploying by hand
 
@@ -81,8 +104,9 @@ With the Cloudflare credentials and `FAMILY_OS_TOKEN` in the environment (or an 
 ```sh
 pnpm exec alchemy plan --stage prod   # what would change
 pnpm deploy:prod                      # deploy it
+pnpm deploy:dev                       # deploy this checkout to dev
 ```
 
-Use another stage name to try a change without touching prod, then remove it with `pnpm exec alchemy destroy --stage <name>`.
+To try a change without touching prod, deploy it to `dev`. A throwaway stage works too: any other stage name gets generated Worker names; remove it with `pnpm exec alchemy destroy --stage <name>`. Never destroy `dev`: that deletes its data.
 
 In a Claude Code cloud session, Node only goes through the session's network proxy when `NODE_USE_ENV_PROXY=1` is set. Without it, Alchemy fails with a "Transport error". Set it in the cloud environment's variables, or prefix the command with it.
