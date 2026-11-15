@@ -20,10 +20,11 @@ The dev server checks a bearer token like the deployed one will: `FAMILY_OS_TOKE
 ```sh
 pnpm fos --help
 pnpm fos set-hourly-rate --target home --cents-per-hour 1500 --effective-from 2026-01-01
-pnpm fos register-sitter --target home --name Maria --iban "FR76 3000 6000 0112 3456 7890 189"
-pnpm fos log-shift --target home --sitter-id maria --date 2026-11-13 --minutes 240
+pnpm fos register-sitter --target maria --name Maria --iban "FR76 3000 6000 0112 3456 7890 189"
+pnpm fos sitter-balance get --key maria
+pnpm fos log-shift --target maria --date 2026-11-13 --minutes 240
 pnpm fos payouts get --key home
-pnpm fos record-payment --target home --sitter-id maria
+pnpm fos record-payment --target maria
 pnpm fos sitter-statement list --key maria
 ```
 

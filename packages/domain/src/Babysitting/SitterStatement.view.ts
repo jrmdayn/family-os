@@ -3,9 +3,8 @@ import * as Schema from "effect/Schema";
 import { Cents } from "../Money.ts";
 import { Session } from "../Session.middleware.ts";
 import { IsoDate } from "../Time.ts";
-import { Ledger } from "./Ledger.aggregate.ts";
 import { anySignedInCaller } from "./signedIn.ts";
-import { SitterId } from "./Sitter.id.ts";
+import { Sitter } from "./Sitter.aggregate.ts";
 
 /**
  * One line of a sitter's statement: a shift, a payment, or a correction or
@@ -39,9 +38,8 @@ const line = (
 export class SitterStatement extends Domain.View(
   "SitterStatement",
   {
-    from: [Ledger],
-    key: SitterId,
-    keyOf: { Ledger: ({ event }) => ("sitterId" in event ? event.sitterId : undefined) },
+    from: [Sitter],
+    key: Sitter,
     middleware: [Session],
     events: [StatementLine],
     emit: {
@@ -95,7 +93,7 @@ export class SitterStatement extends Domain.View(
   },
   {
     description:
-      "A sitter's statement: one line per shift, payment, correction or cancellation, with the balance after each. Read it with list (newest first with order desc). Key: the sitter's id. Line references are the shift and payment ids to correct or cancel.",
+      "A sitter's statement: one line per shift, payment, correction or cancellation, with the balance after each. Read it with list (newest first with order desc). Key: the sitter's id. Line references are the sitter's shift and payment ids, to correct or cancel.",
   },
 ) {}
 

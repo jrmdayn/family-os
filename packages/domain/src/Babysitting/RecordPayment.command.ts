@@ -4,7 +4,6 @@ import { Cents, PositiveCents } from "../Money.ts";
 import { Session } from "../Session.middleware.ts";
 import { IsoDate } from "../Time.ts";
 import { DateInFuture } from "./DateInFuture.rejection.ts";
-import { LedgerId } from "./Ledger.id.ts";
 import { PaymentId } from "./Shift.id.ts";
 import { SitterId } from "./Sitter.id.ts";
 import { UnknownSitter } from "./UnknownSitter.rejection.ts";
@@ -12,7 +11,6 @@ import { UnknownSitter } from "./UnknownSitter.rejection.ts";
 /** Money was wired to a sitter. */
 export class PaymentRecorded extends Domain.Event("PaymentRecorded", {
   paymentId: PaymentId,
-  sitterId: SitterId,
   date: IsoDate,
   amount: PositiveCents,
   balanceAfter: Cents,
@@ -33,10 +31,9 @@ export class MoreThanOwed extends Domain.Rejection(
 export class RecordPayment extends Domain.Command(
   "RecordPayment",
   {
-    target: LedgerId,
+    target: SitterId,
     middleware: [Session],
     input: {
-      sitterId: SitterId,
       amount: Schema.optionalKey(PositiveCents),
       date: Schema.optionalKey(IsoDate),
     },
@@ -46,6 +43,6 @@ export class RecordPayment extends Domain.Command(
   },
   {
     description:
-      'Record a transfer made to a sitter ("I paid Maria"). Leave amount out to pay their whole balance, and date out for today. It can\'t exceed what they are owed.',
+      'Record a transfer made to a sitter ("I paid Maria" targets "maria"). Leave amount out to pay their whole balance, and date out for today. It can\'t exceed what they are owed.',
   },
 ) {}
