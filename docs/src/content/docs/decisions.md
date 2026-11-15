@@ -5,6 +5,12 @@ description: The choices behind Family OS, with the reason for each.
 
 Each entry records a choice, why it was made, and what would make us revisit it. Newest first.
 
+## The docs deploy from main, as static assets in the app stack
+
+**Decision.** `alchemy.run.ts` declares the docs as a `Cloudflare.Website.StaticSite` with no Worker code, and CI deploys its `prod` stage on every push to `main` that passes the checks. See [Deploying](/building/deploying/).
+
+**Why.** The site is fully static, so an assets-only Worker serves it at no compute cost, with no extra dependency (`Cloudflare.Website.Astro` would need `@alchemy.run/frontend-frameworks` for nothing). Putting it in the app stack now means the server joins an existing stack and deploy job in M2. Deploys from `main` aren't cancelled by later pushes, so state is never left mid-apply. Revisit if the docs need server-rendered pages or pull-request previews.
+
 ## CI credentials are provisioned as code
 
 **Decision.** `stacks/github.ts` creates CI's Cloudflare API token and writes it into the repository's GitHub Actions secrets. It runs from the owner's laptop with an `admin` Alchemy profile. See [Deploy credentials](/building/deploy-credentials/).

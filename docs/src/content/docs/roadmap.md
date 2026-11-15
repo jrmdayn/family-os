@@ -41,7 +41,7 @@ Needs a Cloudflare account and an API token stored as a GitHub secret.
 - [ ] Server Worker: the model on Durable Objects, `/api` with OpenAPI, `/mcp`.
 - [ ] The bearer token from M1 guards the deployed Api and `/mcp`, so Claude Code can call it before OAuth exists.
 - [ ] Alchemy remote state, `dev` and `prod` stages, deploys from GitHub Actions.
-- [ ] This docs site deployed publicly by the same stack.
+- [x] This docs site deployed publicly by the same stack (`alchemy.run.ts`), from CI on every push to `main`. See [Deploying](/building/deploying/).
 - [ ] Docs: infrastructure, and the "Maria 4h on Friday" walkthrough.
 
 **Done when** Claude Code logs a shift in `dev`, and the docs are online.

@@ -2,6 +2,8 @@ import starlight from "@astrojs/starlight";
 import { defineConfig } from "astro/config";
 
 export default defineConfig({
+  // The prod stage of alchemy.run.ts serves the docs here.
+  site: "https://family-os-docs.jrmdayn.workers.dev",
   integrations: [
     starlight({
       title: "Family OS",
@@ -19,6 +21,7 @@ export default defineConfig({
             { label: "The repository", link: "/building/repository/" },
             { label: "The babysitting model", link: "/building/babysitting-model/" },
             { label: "Local development", link: "/building/local-development/" },
+            { label: "Deploying", link: "/building/deploying/" },
             { label: "Deploy credentials", link: "/building/deploy-credentials/" },
           ],
         },
