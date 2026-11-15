@@ -41,7 +41,7 @@ pnpm fos --help    # CLI against it (FAMILY_OS_URL, FAMILY_OS_TOKEN)
 pnpm format
 pnpm docs:dev
 pnpm repos:sync
-pnpm exec alchemy plan --stage prod   # what a deploy would change (CI deploys prod on push to main)
+pnpm exec alchemy plan --stage prod   # what a deploy would change (CI deploys prod on push to main, pr-<n> per pull request)
 ```
 
 In a Claude Code cloud session, prefix Alchemy commands with `NODE_USE_ENV_PROXY=1`: otherwise Node bypasses the network proxy and Alchemy fails with "Transport error".

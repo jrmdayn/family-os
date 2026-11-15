@@ -22,14 +22,22 @@ const Docs = Cloudflare.Website.StaticSite("Docs", {
 
 `StaticSite` runs the build, hashes `docs/dist` and uploads it. The build only re-runs when a file under `docs/` or the lockfile changes, so a push that doesn't touch the docs deploys nothing. The prod stage serves at <https://family-os-docs.jrmdayn.workers.dev>.
 
-## CI deploys main
+## CI deploys main, and a preview per pull request
 
-`.github/workflows/ci.yml` has two jobs:
+`.github/workflows/ci.yml` has four jobs:
 
-- **`check`** runs on every push and pull request: typecheck, lint, format, tests, docs build.
-- **`deploy`** runs after `check` passes, only on pushes to `main`, and runs `pnpm deploy:prod --yes` with the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets (see [Deploy credentials](/building/deploy-credentials/)).
+| Job | Runs on | Does |
+|---|---|---|
+| `check` | every push and pull request | typecheck, lint, format, tests, docs build |
+| `deploy` | pushes to `main`, after `check` | `pnpm deploy:prod --yes` |
+| `preview` | pull request opened, reopened or pushed to, after `check` | deploys the stage `pr-<number>` |
+| `preview-cleanup` | pull request closed or merged | destroys the stage `pr-<number>` |
 
-Deploys from `main` are never cancelled halfway: a newer push waits for the running deploy instead of interrupting it, so Alchemy's state is never left mid-apply. State lives in the account's state store, shared by CI, laptops and Claude Code cloud sessions.
+All of them use the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets (see [Deploy credentials](/building/deploy-credentials/)).
+
+A preview is a full copy of the stack under its own stage, with generated Worker names. When CI sets `PULL_REQUEST`, `alchemy.run.ts` also declares a `GitHub.Comment` on the pull request listing the preview's URLs, using the workflow's own `GITHUB_TOKEN`. The comment keeps its logical id, so each push edits it in place, and it stays on the pull request after the preview is destroyed. Pull requests from forks get no preview, since they can't read the secrets.
+
+Deploys and destroys are never cancelled halfway: a newer push waits for the running one instead of interrupting it, so Alchemy's state is never left mid-apply. Only `check` is cancelled when a newer push supersedes it. The `preview` job checks the pull request is still open before deploying, so a pull request closed while its checks ran doesn't leave a preview behind. State lives in the account's state store, shared by CI, laptops and Claude Code cloud sessions.
 
 ## Deploying by hand
 
