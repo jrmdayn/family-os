@@ -20,6 +20,7 @@ catalog:
   astro: 7.4.12
   "@astrojs/starlight": 0.43.1
   # Tooling
+  "@types/node": 24.19.2
   oxfmt: 0.78.0
   oxlint: 1.93.0
   typescript: 7.0.2

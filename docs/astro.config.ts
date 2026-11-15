@@ -15,7 +15,11 @@ export default defineConfig({
         { label: "Roadmap", link: "/roadmap/" },
         {
           label: "How it's built",
-          items: [{ label: "The repository", link: "/building/repository/" }],
+          items: [
+            { label: "The repository", link: "/building/repository/" },
+            { label: "The babysitting model", link: "/building/babysitting-model/" },
+            { label: "Local development", link: "/building/local-development/" },
+          ],
         },
         { label: "Decisions", link: "/decisions/" },
       ],

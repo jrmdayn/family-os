@@ -24,23 +24,22 @@ Any session, in the cloud or on a laptop, starts with the right tools, reference
 
 No Cloudflare account needed.
 
-- [ ] Check that `LogShift`, decided by the `Sitter` aggregate, can read the current rate from `RateCard`.
-- [ ] `RateCard` aggregate (one instance): `SetHourlyRate`.
-- [ ] `Sitter` aggregate (one per babysitter): `RegisterSitter`, `UpdateSitter`, `ArchiveSitter`, `LogShift`, `CorrectShift`, `CancelShift`, `RecordPayment`.
-- [ ] Views: `SitterBalance`, `SitterStatement`, `Payouts`, `SitterDirectory`.
-- [ ] `OwnerApi`, with descriptions written for an LLM: ISO dates, Europe/Paris, amounts in cents, replies that echo what was recorded.
-- [ ] Stories for every rule, and Api tests.
-- [ ] A local CLI over the Api, on `Domain.InMemory`.
-- [ ] Docs: glossary, a map of the model, decisions.
+- [x] Checked whether `LogShift` could read the rate from a separate aggregate: it can't (a decision reads only its own state), so the rate and the sitters live in one `Ledger` aggregate. See [Decisions](/decisions/).
+- [x] `Ledger` aggregate (id `home`): `SetHourlyRate`, `RegisterSitter`, `UpdateSitter`, `ArchiveSitter`, `LogShift`, `CorrectShift`, `CancelShift`, `RecordPayment`, `CancelPayment`.
+- [x] Views: `SitterDirectory`, `HourlyRates`, `SitterBalance`, `SitterStatement`, `Payouts`.
+- [x] `OwnerApi`, with descriptions written for an LLM: ISO dates, Europe/Paris, amounts in cents, replies that echo what was recorded.
+- [x] Stories for every rule, and Api tests with the session middleware.
+- [x] A local dev server (`pnpm dev`) and a CLI (`pnpm fos`), on `Domain.InMemory`, guarded by a bearer token.
+- [x] Docs: [the babysitting model](/building/babysitting-model/), [local development](/building/local-development/), decisions.
 
-**Done when** you can register Maria, log "4h on Friday" and see what you owe her, from the terminal.
+**Done when** you can register Maria, log "4h on Friday" and see what you owe her, from the terminal. ✓
 
 ## M2: Cloudflare and MCP
 
 Needs a Cloudflare account and an API token stored as a GitHub secret.
 
 - [ ] Server Worker: the model on Durable Objects, `/api` with OpenAPI, `/mcp`.
-- [ ] A temporary bearer token, to call the MCP endpoint from Claude Code before OAuth exists.
+- [ ] The bearer token from M1 guards the deployed Api and `/mcp`, so Claude Code can call it before OAuth exists.
 - [ ] Alchemy remote state, `dev` and `prod` stages, deploys from GitHub Actions.
 - [ ] This docs site deployed publicly by the same stack.
 - [ ] Docs: infrastructure, and the "Maria 4h on Friday" walkthrough.

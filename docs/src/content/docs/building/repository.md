@@ -9,7 +9,8 @@ description: How the Family OS repository is laid out, which tools it uses, and 
 family-os/
   packages/
     domain/   @family-os/domain   the model, its Apis and its stories
-    server/   @family-os/server   hosts the model on Cloudflare, serves /api and /mcp, owns sign-in
+    server/   @family-os/server   hosts the model (locally today, on Cloudflare from M2), owns sign-in
+    cli/      @family-os/cli      fos, the Api from a terminal
     web/      @family-os/web      the Foldkit app
   docs/       @family-os/docs     this site (Astro + Starlight)
   scripts/    sync-repos.sh, and later the Notion import
@@ -22,7 +23,7 @@ The split follows Alchemy Domain's recommended project layout:
 - **`server`** decides where the model runs and implements what the model depends on, such as storage and sign-in.
 - **`web`** is a client of the same Api as the LLM.
 
-Inside `domain`, there is one folder per part of the household (`Babysitting/`, `Rates/`) and one file per building block, named after its noun and its kind: `LogShift.command.ts`, `Sitter.aggregate.ts`, `Payouts.view.ts`. A command shares its file with the events it records and the rejections only it returns.
+Inside `domain`, there is one folder per part of the household (today `Babysitting/`) and one file per building block, named after its noun and its kind: `LogShift.command.ts`, `Sitter.aggregate.ts`, `Payouts.view.ts`. A command shares its file with the events it records and the rejections only it returns.
 
 ## Toolchain
 
@@ -31,7 +32,7 @@ Inside `domain`, there is one folder per part of the household (`Babysitting/`, 
 | Node 24 | `devEngines` in `package.json`, `.nvmrc` | pnpm downloads the right Node by itself, so scripts run on Node 24 even if the machine has another version. |
 | pnpm 12 | `packageManager` in `package.json` | Install it with Corepack (`npm install -g corepack@latest` first: the Corepack bundled with Node 24.11 cannot install pnpm 12) or, in CI, with `pnpm/action-setup`. |
 | Dependencies | `catalog:` in `pnpm-workspace.yaml` | Every package refers to the catalog, so one line changes a version everywhere. |
-| TypeScript 7 | catalog | `tsconfig.base.json` is strict, with `exactOptionalPropertyTypes` and `noUncheckedIndexedAccess`. |
+| TypeScript 7 | catalog | `tsconfig.base.json` is strict, with `noUncheckedIndexedAccess`. |
 | vitest + `@effect/vitest` | catalog | Stories are written with `it.effect`. |
 | oxlint, oxfmt | catalog | Same formatting as the Alchemy repository, so code copied from there needs no reformatting. |
 
@@ -40,6 +41,8 @@ Common commands:
 ```sh
 pnpm check        # typecheck, lint, format check, tests
 pnpm test
+pnpm dev          # the local server, in memory
+pnpm fos --help   # the CLI
 pnpm format
 pnpm docs:dev     # this site, on localhost
 pnpm repos:sync   # refresh repos/ after bumping a version

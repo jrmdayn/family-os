@@ -11,7 +11,9 @@
     "test": "pnpm -r test",
     "docs:dev": "pnpm --filter @family-os/docs dev",
     "docs:build": "pnpm --filter @family-os/docs build",
-    "repos:sync": "bash scripts/sync-repos.sh"
+    "repos:sync": "bash scripts/sync-repos.sh",
+    "dev": "pnpm --filter @family-os/server dev",
+    "fos": "node packages/cli/src/fos.ts"
   },
   "devDependencies": {
     "oxfmt": "catalog:",

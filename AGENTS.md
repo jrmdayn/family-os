@@ -22,8 +22,9 @@ Skills: `alchemy-domain` (domain modeling, layout, stories, Cloudflare hosting) 
 ## Layout and conventions
 
 - `packages/domain` imports only `@alchemy.run/domain` and `effect`. No Cloudflare, no IO.
-- `packages/server` hosts the model and implements what it depends on. `packages/web` is the Foldkit app. `docs/` is the Astro + Starlight site.
-- Follow Alchemy Domain's project layout: one folder per subdomain (`Babysitting/`, `Rates/`), one file per building block named `<Noun>.<kind>.ts` (`LogShift.command.ts`, `Sitter.aggregate.ts`, `Payouts.view.ts`, `OwnerApi.api.ts`, `Session.middleware.ts`). A command shares its file with its events and the rejections only it returns.
+- `packages/server` hosts the model and implements what it depends on (session middleware, local dev server). `packages/cli` is `fos`, the Api from a terminal. `packages/web` is the Foldkit app. `docs/` is the Astro + Starlight site.
+- The babysitting ledger is one `Ledger` aggregate with the constant id `home` (see `docs/src/content/docs/building/babysitting-model.md`). Decisions are pure: they read only the ledger's state and `now`.
+- Follow Alchemy Domain's project layout: one folder per subdomain (`Babysitting/`), one file per building block named `<Noun>.<kind>.ts` (`LogShift.command.ts`, `Ledger.aggregate.ts`, `Payouts.view.ts`, `OwnerApi.api.ts`, `Session.middleware.ts`). A command shares its file with its events and the rejections only it returns.
 - Money is integer cents (EUR). Durations are integer minutes. Dates are ISO `YYYY-MM-DD`, Europe/Paris.
 - Every command and view carries a `description` annotation written for an LLM: it becomes the MCP tool description.
 - Every business rule gets a story (`Story.given / when / then`). Api access gets an Api test.
@@ -35,6 +36,8 @@ Skills: `alchemy-domain` (domain modeling, layout, stories, Cloudflare hosting) 
 pnpm install
 pnpm check         # typecheck + lint + format check + tests
 pnpm test
+pnpm dev           # local server, model in memory, http://localhost:8787
+pnpm fos --help    # CLI against it (FAMILY_OS_URL, FAMILY_OS_TOKEN)
 pnpm format
 pnpm docs:dev
 pnpm repos:sync

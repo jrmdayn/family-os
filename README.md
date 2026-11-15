@@ -18,4 +18,6 @@ corepack enable
 pnpm install
 pnpm repos:sync   # reference sources for Alchemy, Effect and Foldkit
 pnpm check
+pnpm dev          # local server, in memory
+pnpm fos --help   # talk to it from another terminal
 ```
