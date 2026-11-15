@@ -58,7 +58,7 @@ Every command answers with a receipt: the command's `reply`, the `stream` it wro
 
 > Maria babysits for us now. Her IBAN is FR76 3000 6000 0112 3456 7890 189.
 
-Claude may first read the directory to check Maria isn't already there. On a new stage, nothing has been recorded yet, so the view has no state:
+Claude may first read the directory to check Maria isn't already there. On a new stage, no sitter has been registered yet, so the view has no state:
 
 ```json
 // OwnerApi_SitterDirectory_get
@@ -69,6 +69,8 @@ Claude may first read the directory to check Maria isn't already there. On a new
 { "value": null }
 ```
 
+A view key that no event has reached reads as `null`: Alchemy Domain has no way to give it an empty state. So the descriptions of the three household views say what `null` means: no sitters yet for `SitterDirectory`, nothing to wire for `Payouts`, no household rate yet for `HourlyRates`, so Claude can tell an empty household from an error.
+
 Then it registers her, with a slug of her name as the id:
 
 ```json
@@ -77,10 +79,14 @@ Then it registers her, with a slug of her name as the id:
 ```
 
 ```json
-{ "reply": null, "stream": "Sitter/maria", "version": 1 }
+{
+  "reply": { "name": "Maria", "aliases": [], "iban": "FR7630006000011234567890189" },
+  "stream": "Sitter/maria",
+  "version": 1
+}
 ```
 
-`RegisterSitter` declares no reply of its own, so `reply` is `null`. The receipt still says the command succeeded and created `Sitter/maria`.
+The reply echoes what was recorded: the name, no nicknames, and the IBAN as stored, without spaces. The sitter's id is in `stream`: `Sitter/maria`.
 
 Registering her also starts the `HourlyRateOnboarding` policy: a moment later, it copies the household rate into Maria's own rates (see [The babysitting model](/building/babysitting-model/#aggregates-one-per-sitter-and-the-rate-card)). That copy is `version` 2 of her stream.
 
@@ -111,7 +117,7 @@ Claude turns "Maria" into a sitter id with the directory:
 }
 ```
 
-One sitter goes by Maria, and `sharedNames` is empty, so there is nothing to ask. The IBAN is stored without spaces.
+One sitter goes by Maria, and `sharedNames` is empty, so there is nothing to ask.
 
 `LogShift`'s description asks for "the date of the most recent Friday (today or earlier, YYYY-MM-DD, Europe/Paris)". Today is Sunday 15 November, so Friday is `2026-11-13`, and 4 hours is `240` minutes:
 

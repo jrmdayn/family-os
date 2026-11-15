@@ -1,4 +1,5 @@
 import * as Domain from "@alchemy.run/domain";
+import * as Schema from "effect/Schema";
 import { Cents } from "../Money.ts";
 import { Session } from "../Session.middleware.ts";
 import { SitterId } from "./Sitter.id.ts";
@@ -20,9 +21,10 @@ export class ArchiveSitter extends Domain.Command(
     middleware: [Session],
     events: [SitterArchived],
     rejects: [UnknownSitter, OutstandingBalance],
+    reply: { name: Schema.String, active: Schema.Boolean },
   },
   {
     description:
-      "Archive a sitter who no longer babysits. Their balance must be zero. Their history stays readable, and household rate changes no longer reach them.",
+      "Archive a sitter who no longer babysits. Their balance must be zero. Their history stays readable, and household rate changes no longer reach them. Replies with their name and active: false. Archiving an archived sitter changes nothing.",
   },
 ) {}

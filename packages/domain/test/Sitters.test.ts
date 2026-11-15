@@ -39,6 +39,7 @@ describe("RegisterSitter", () => {
     story(
       sunday,
       asOwner,
+      Story.view(SitterDirectory, HOME, Story.none),
       Story.when(
         Sitter.ref(anaLucia),
         new RegisterSitter({
@@ -51,6 +52,7 @@ describe("RegisterSitter", () => {
         Sitter.ref(anaLucia),
         new SitterRegistered({ name: "Ana Lucía", aliases: ["Lu"], iban: MARIA_IBAN }),
       ),
+      Story.replied({ name: "Ana Lucía", aliases: ["Lu"], iban: MARIA_IBAN }),
       Story.view(SitterDirectory, HOME, {
         sitters: {
           [anaLucia]: { name: "Ana Lucía", aliases: ["Lu"], iban: MARIA_IBAN, active: true },
@@ -72,6 +74,7 @@ describe("RegisterSitter", () => {
       asOwner,
       Story.when(anaBook, new RegisterSitter({ name: "Ana" })),
       Story.then(anaBook, new SitterRegistered({ name: "Ana", aliases: [], iban: null })),
+      Story.replied({ name: "Ana", aliases: [], iban: null }),
     ),
   );
 
@@ -137,6 +140,7 @@ describe("UpdateSitter", () => {
         mariaBook,
         new SitterDetailsChanged({ name: "María", aliases: ["Mamá"], iban: MARIA_IBAN }),
       ),
+      Story.replied({ name: "María", aliases: ["Mamá"], iban: MARIA_IBAN }),
       Story.view(SitterBalance, mariaBook, { name: "María" }),
     ),
   );
@@ -151,16 +155,18 @@ describe("UpdateSitter", () => {
         mariaBook,
         new SitterDetailsChanged({ name: "Maria", aliases: ["Mari"], iban: null }),
       ),
+      Story.replied({ name: "Maria", aliases: ["Mari"], iban: null }),
     ),
   );
 
-  it.effect("records nothing when nothing changes", () =>
+  it.effect("records nothing when nothing changes, and replies with the details as they are", () =>
     story(
       sunday,
       Story.given(mariaBook, mariaJoined),
       asOwner,
       Story.when(mariaBook, new UpdateSitter({ name: "Maria", iban: MARIA_IBAN })),
       Story.then(mariaBook),
+      Story.replied({ name: "Maria", aliases: ["Mari"], iban: MARIA_IBAN }),
     ),
   );
 
@@ -182,12 +188,14 @@ describe("ArchiveSitter", () => {
       asOwner,
       Story.when(mariaBook, new ArchiveSitter()),
       Story.then(mariaBook, new SitterArchived({})),
+      Story.replied({ name: "Maria", active: false }),
       Story.view(SitterBalance, mariaBook, { active: false }),
       Story.view(SitterDirectory, HOME, (directory) => {
         if (directory.sitters[maria]?.active !== false) throw new Error("Maria is still active");
       }),
       Story.when(mariaBook, new ArchiveSitter()),
       Story.then(mariaBook),
+      Story.replied({ name: "Maria", active: false }),
     ),
   );
 

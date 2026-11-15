@@ -105,6 +105,12 @@ const notInFuture = (
 const sameList = (a: ReadonlyArray<string>, b: ReadonlyArray<string>) =>
   a.length === b.length && a.every((value, i) => value === b[i]);
 
+/** Who a sitter is, as recorded: what RegisterSitter and UpdateSitter reply. */
+const detailsOf = (s: SitterState) =>
+  s._tag === "Unregistered"
+    ? { name: "", aliases: [], iban: null }
+    : { name: s.name, aliases: s.aliases, iban: s.iban };
+
 /**
  * One babysitter's book: who they are, their hourly rates, and what they are
  * owed. Every rule about money is about one sitter, so each sitter is its own
@@ -359,6 +365,12 @@ export class Sitter extends Domain.Aggregate("Sitter", {
   },
 
   reply: {
+    RegisterSitter: detailsOf,
+    UpdateSitter: detailsOf,
+    ArchiveSitter: (s) => ({
+      name: s._tag === "Unregistered" ? "" : s.name,
+      active: s._tag === "Active",
+    }),
     SetSitterRate: (s) => {
       const latest = s._tag === "Unregistered" ? undefined : s.rates.at(-1);
       return {

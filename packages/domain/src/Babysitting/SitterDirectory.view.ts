@@ -87,7 +87,7 @@ export class SitterDirectory extends Domain.View(
   },
   {
     description:
-      'Every sitter by id, with their name, nicknames, IBAN and whether they are active. Use it to turn a name like "Maria" into a sitter id. Names are not unique: sharedNames lists every name (or nickname) more than one active sitter goes by, ignoring case and accents; when the name you look up is one of them, ask which sitter is meant. Key: always "home".',
+      'Every sitter by id, with their name, nicknames, IBAN and whether they are active. Use it to turn a name like "Maria" into a sitter id. Names are not unique: sharedNames lists every name (or nickname) more than one active sitter goes by, ignoring case and accents; when the name you look up is one of them, ask which sitter is meant. Key: always "home". The value is null until the first sitter is registered: null means no sitters yet, not an error.',
   },
 ) {}
 

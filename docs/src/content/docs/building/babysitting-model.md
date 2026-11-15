@@ -51,6 +51,8 @@ Every command requires a session. `SetHourlyRate` targets the rate card, `home`;
 | `RecordPayment` | sitter | `amount?` (whole balance), `date?` (today) | `PaymentRecorded` | `UnknownSitter`, `NothingOwed`, `MoreThanOwed`, `DateInFuture` |
 | `CancelPayment` | sitter | `paymentId` | `PaymentCancelled` | `UnknownSitter`, `UnknownPayment`, `PaymentAlreadyCancelled`, `SitterNotActive` |
 
+Every command replies with what it recorded, so an LLM confirms from the result rather than from what it meant to send: `RegisterSitter` and `UpdateSitter` reply with the sitter's name, nicknames and IBAN as stored (or `null`), `ArchiveSitter` with the name and `active: false`, `LogShift` with the shift's price and the new balance, and so on. The receipt around the reply names the stream written to, such as `Sitter/maria`.
+
 Each event carries the outcome the decision worked out, such as `amount` and `balanceAfter`, so views copy numbers instead of recomputing them. A sitter's events don't name the sitter: views read it from the stream they come from.
 
 ## Rules
@@ -74,6 +76,8 @@ Each event carries the outcome the decision worked out, such as `amount` and `ba
 | `Payouts` | `home` | What to wire to whom: amount, IBAN and reference (`Babysitting 2026-11-09 to 2026-11-13`) per sitter owed money, and the total. |
 
 `SitterDirectory` and `Payouts` are keyed by the value `home` and read every sitter's events (`keyOf` routes them all to `home`).
+
+A view key that no event has reached reads as `null`, and Alchemy Domain has no setting to make it read as an empty state instead (`initial` is only what the first event is applied to). So on a new household, `SitterDirectory` and `Payouts` are `null` until the first sitter is registered, and `HourlyRates` until the first `SetHourlyRate`. Their descriptions tell the LLM what that `null` means. For `SitterBalance`, `null` means no sitter has that id.
 
 ## From a sentence to a shift
 
