@@ -2,7 +2,7 @@
   "name": "@family-os/server",
   "version": "0.0.0",
   "private": true,
-  "description": "Hosts the domain and implements what it depends on: the session middleware, and the local dev server. Cloudflare hosting arrives in M2.",
+  "description": "Hosts the domain and implements what it depends on: the session middleware, the routes, the Cloudflare Worker and the local dev server.",
   "type": "module",
   "exports": {
     "./*": "./src/*.ts"
@@ -13,9 +13,11 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@alchemy.run/cloudflare": "catalog:",
     "@alchemy.run/domain": "catalog:",
     "@effect/platform-node": "catalog:",
     "@family-os/domain": "workspace:*",
+    "alchemy": "catalog:",
     "effect": "catalog:"
   },
   "devDependencies": {

@@ -33,8 +33,9 @@ jobs:
       - run: pnpm docs:build
 
   # Every push to main that passes the checks deploys the prod stage of
-  # alchemy.run.ts (for now, the docs site). Credentials are the CI token
-  # that stacks/github.ts writes into the repository's secrets.
+  # alchemy.run.ts: the server Worker and the docs site. Credentials are the
+  # CI token that stacks/github.ts writes into the repository's secrets, with
+  # the owner's bearer token (FAMILY_OS_TOKEN), bound to the Worker.
   deploy:
     needs: check
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -55,6 +56,7 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          FAMILY_OS_TOKEN: ${{ secrets.FAMILY_OS_TOKEN }}
 
   # Each open pull request from this repository gets its own stage, pr-<number>,
   # redeployed on every push that passes the checks. alchemy.run.ts comments
@@ -96,6 +98,7 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          FAMILY_OS_TOKEN: ${{ secrets.FAMILY_OS_TOKEN }}
           GITHUB_TOKEN: ${{ github.token }}
           PULL_REQUEST: ${{ github.event.number }}
           PREVIEW_SHA: ${{ github.event.pull_request.head.sha }}
@@ -127,5 +130,6 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          FAMILY_OS_TOKEN: ${{ secrets.FAMILY_OS_TOKEN }}
           GITHUB_TOKEN: ${{ github.token }}
           PULL_REQUEST: ${{ github.event.number }}

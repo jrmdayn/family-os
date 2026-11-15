@@ -3,8 +3,12 @@ import * as RpcMiddleware from "effect/rpc/RpcMiddleware";
 import * as Schema from "effect/Schema";
 import { CurrentActor } from "./CurrentActor.context.ts";
 
-/** The request carries no valid session. */
-export class Unauthorized extends Schema.TaggedError<Unauthorized>()("Unauthorized", {}) {}
+/** The request carries no valid session. Over plain HTTP, a 401. */
+export class Unauthorized extends Schema.TaggedError<Unauthorized>()(
+  "Unauthorized",
+  {},
+  { httpApiStatus: 401 },
+) {}
 
 /**
  * Authenticates a request and provides who made it as the

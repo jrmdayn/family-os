@@ -9,12 +9,12 @@ description: How the Family OS repository is laid out, which tools it uses, and 
 family-os/
   packages/
     domain/   @family-os/domain   the model, its Apis and its stories
-    server/   @family-os/server   hosts the model (locally today, on Cloudflare from M2), owns sign-in
+    server/   @family-os/server   hosts the model (in memory locally, on Durable Objects on Cloudflare), owns sign-in
     cli/      @family-os/cli      fos, the Api from a terminal
     web/      @family-os/web      the Foldkit app
   docs/       @family-os/docs     this site (Astro + Starlight)
-  alchemy.run.ts   the app stack: what runs on Cloudflare (the docs today)
-  stacks/     github.ts: CI credentials as code
+  alchemy.run.ts   the app stack: what runs on Cloudflare (the server Worker and the docs)
+  stacks/     github.ts: CI credentials and the owner token, as code
   scripts/    sync-repos.sh, and later the Notion import
   repos/      reference sources, gitignored (see below)
 ```

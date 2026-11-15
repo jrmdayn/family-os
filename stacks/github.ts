@@ -5,8 +5,13 @@
  *   pnpm stacks:github           # create or update the tokens and secrets
  *   pnpm stacks:github:reveal    # the same, then print what to paste into Claude
  *
- * It creates two Cloudflare API tokens, each scoped to what deploying Family
- * OS needs:
+ * It creates the owner's bearer token, `FAMILY_OS_TOKEN`: a random value kept
+ * in Alchemy's state and written into the repository's GitHub Actions
+ * secrets, so every deploy binds the same token to the server Worker. Claude
+ * Code sends it to reach the deployed Api and MCP server, until OAuth (M3).
+ *
+ * It also creates two Cloudflare API tokens, each scoped to what deploying
+ * Family OS needs:
  *
  * - `CIToken`, written with the account id into the repository's GitHub
  *   Actions secrets. Its value never passes through a terminal.
@@ -15,7 +20,8 @@
  *   copy into the cloud environment. Normal runs never print it.
  *
  * Two tokens, so either can be revoked without breaking the other. Re-run to
- * change their permissions; rename a token's id to rotate it.
+ * change their permissions; rename a token's id to rotate it (the owner token
+ * too: rename `OwnerToken`, re-run, then redeploy so the Worker gets it).
  *
  * The first run also creates Alchemy's state store on the account (a Worker
  * with a Durable Object), which every later deploy, local or CI, shares.
@@ -77,6 +83,15 @@ export default Alchemy.Stack(
       value: Redacted.make(accountId),
     });
 
+    // The owner's bearer token: 32 random bytes, hex encoded, kept in state.
+    const ownerToken = yield* Alchemy.Random("OwnerToken");
+
+    yield* GitHub.Secret("FamilyOsToken", {
+      ...repository,
+      name: "FAMILY_OS_TOKEN",
+      value: ownerToken.text,
+    });
+
     const sessionToken = yield* Cloudflare.ApiToken.AccountApiToken("ClaudeSessionToken", {
       accountId,
       policies: deployPolicy(accountId),
@@ -89,6 +104,7 @@ export default Alchemy.Stack(
       "Paste into the Claude cloud environment": {
         CLOUDFLARE_ACCOUNT_ID: accountId,
         CLOUDFLARE_API_TOKEN: sessionToken.value.pipe(Output.map(Redacted.value)),
+        FAMILY_OS_TOKEN: ownerToken.text.pipe(Output.map(Redacted.value)),
       },
     };
   }),

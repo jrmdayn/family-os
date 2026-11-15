@@ -5,6 +5,30 @@ description: The choices behind Family OS, with the reason for each.
 
 Each entry records a choice, why it was made, and what would make us revisit it. Newest first.
 
+## One Worker serves `/rpc`, `/api` and `/mcp` from the same Api
+
+**Decision.** The server Worker serves the `OwnerApi` three ways, from `packages/server/src/Routes.ts`: `/rpc` (the Api's own protocol, for `fos` and later the web app), `/api` (plain HTTP and JSON with an OpenAPI document, from Domain's `toHttpApi`) and `/mcp` (MCP tools, from Domain's `toMcp`). All three publish the same list of calls, `ownerCalls` in `OwnerApi.api.ts`, and the local dev server serves the same routes. `/mcp` serves only MCP `2026-07-28`, the sessionless revision, through `McpServer.layerHttpRequestScoped`. See [Deploying](/building/deploying/#the-server-worker).
+
+**Why.** Every call goes through the Api's handlers, so the session middleware, the rules and the rejections are the same whichever way a call comes in, and adding a command to `ownerCalls` publishes it everywhere at once. The dev server runs the same routes, so what works locally works on the Worker. A Worker can't keep an MCP session alive between requests, so it can only serve the sessionless revision. Claude Code connects to it; we checked with `claude mcp add` against both the dev server and a deployed stage.
+
+**Revisit if** Claude.ai's connectors don't accept `2026-07-28` (checked in M3), or a client outside our own needs a stable HTTP contract: `toHttpApi` publishes the domain's replies as they are, so that client would get an API of its own.
+
+## The owner token is minted as code, one for every stage
+
+**Decision.** `stacks/github.ts` makes the owner's bearer token with `Alchemy.Random("OwnerToken")` and writes it to the GitHub secret `FAMILY_OS_TOKEN`. CI passes it to every deploy, prod and previews alike, and the Worker binds it as a secret. `pnpm stacks:github:reveal` prints it for Claude. The Worker refuses a token shorter than 32 characters, so a deploy without the secret fails instead of accepting an empty bearer.
+
+**Why.** It is the same pattern as the CI token: nobody types or copies the secret into GitHub, and rotating it is a rename. One token for every stage means Claude needs one value to reach prod or any preview. Previews already share prod's Cloudflare account, so per-stage tokens would add little.
+
+**Revisit if** previews ever hold real data, or more than one person needs access before M3: then give each stage its own `Alchemy.Random` and keep prod's token out of previews.
+
+## The model's Durable Objects live in the EU
+
+**Decision.** The Worker hosts the model with `DomainCloudflare.layerDurableObjects({ jurisdiction: "eu" })`, so every Durable Object (sitters, rate card, views, policies) is created and stored only in Cloudflare's EU jurisdiction.
+
+**Why.** Sitters' names and IBANs are personal data of people in France, and the household is in Paris, so EU storage costs nothing in latency. It has to be decided before the first deploy holds data: a Durable Object inside a jurisdiction is a different object from the one with the same name outside it, so adding a jurisdiction later would start the model empty.
+
+**Trade-offs.** `alchemy dev` doesn't emulate jurisdictions, which doesn't matter here: local development runs the model in memory.
+
 ## One `Sitter` aggregate per babysitter, and the rate copied to each
 
 **Decision.** Each sitter is its own `Sitter` aggregate, keyed by their id: their details, their own rate schedule, their balance, shifts and payments. The household rate lives in a `RateCard` aggregate (id `home`). `SetHourlyRate` changes it, and two policies copy it into the sitters' schedules: `HourlyRateRollout` sends each new rate to every active sitter, and `HourlyRateOnboarding` sends the whole schedule to a sitter when they register. `SetSitterRate` changes one sitter's rate. Names and nicknames are no longer unique; `SitterDirectory` lists the ones several active sitters share. This replaces the single `Ledger` aggregate below. See [The babysitting model](/building/babysitting-model/).

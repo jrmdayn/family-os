@@ -1,6 +1,6 @@
 /**
- * The Family OS app stack. For now it holds the public docs site; the server
- * Worker joins it in M2.
+ * The Family OS app stack: the server Worker (the model on Durable Objects,
+ * serving /rpc, /api and /mcp) and the public docs site.
  *
  *   pnpm deploy:prod    # what CI runs on every push to main
  *
@@ -9,11 +9,14 @@
  *
  * Credentials come from CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID (see
  * stacks/github.ts and the "Deploy credentials" docs page), plus GITHUB_TOKEN
- * for the preview comment. State lives in the account's Alchemy state store,
+ * for the preview comment. FAMILY_OS_TOKEN is the owner's bearer token, bound
+ * to the Worker as a secret. State lives in the account's Alchemy state store,
  * shared with CI.
  */
 import * as Cloudflare from "@alchemy.run/cloudflare";
+import * as DomainCloudflare from "@alchemy.run/domain/Cloudflare";
 import * as GitHub from "@alchemy.run/github";
+import FamilyOsWorker from "@family-os/server/FamilyOsWorker";
 import * as Alchemy from "alchemy";
 import * as Output from "alchemy/Output";
 import * as Config from "effect/Config";
@@ -40,10 +43,16 @@ const Docs = Cloudflare.Website.StaticSite(
 export default Alchemy.Stack(
   "FamilyOs",
   {
-    providers: Layer.mergeAll(Cloudflare.providers(), GitHub.providers()),
+    providers: Layer.mergeAll(
+      Cloudflare.providers(),
+      // Fills a view added by a deploy from the history before the deploy ends.
+      DomainCloudflare.providers(),
+      GitHub.providers(),
+    ),
     state: Cloudflare.state(),
   },
   Effect.gen(function* () {
+    const server = yield* FamilyOsWorker;
     const docs = yield* Docs;
 
     // Set by CI on pull request previews only.
@@ -61,6 +70,8 @@ export default Alchemy.Stack(
 
           | | |
           |---|---|
+          | MCP | ${server.url}/mcp |
+          | Api | ${server.url}/api/openapi.json |
           | Docs | ${docs.url} |
 
           Built from ${commit.slice(0, 7)}. Updated on every push, removed when this pull request closes.
@@ -68,6 +79,6 @@ export default Alchemy.Stack(
       });
     }
 
-    return { docs: docs.url };
+    return { server: server.url, docs: docs.url };
   }),
 );
