@@ -62,7 +62,7 @@ claude mcp add --transport http family-os http://localhost:8787/mcp \
   --header "Authorization: Bearer dev-token"
 ```
 
-Each command and read is a tool named `OwnerApi_<Name>_<operation>`, with the command's description as the tool description. A deployed stage works the same way with its own URL and token.
+Each command and read is a tool named `OwnerApi_<Name>_<operation>`, with the command's description as the tool description. A deployed stage works the same way with its own URL and token. The [walkthrough](/building/walkthrough/) follows a whole conversation, with each tool call and its result.
 
 Scripts run as TypeScript directly: Node 24 strips the types, so there is no build step. `erasableSyntaxOnly` in `tsconfig.base.json` keeps the code within what Node can strip.
 

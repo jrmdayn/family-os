@@ -3,7 +3,7 @@ title: Deploying
 description: How Family OS reaches Cloudflare. One Alchemy stack, deployed to prod on every push to main, to dev on demand, and to a preview per pull request.
 ---
 
-Everything that runs on Cloudflare is declared in one Alchemy stack, `alchemy.run.ts` at the repository root (`FamilyOs`): the server Worker and this docs site.
+Everything that runs on Cloudflare is declared in one Alchemy stack, `alchemy.run.ts` at the repository root (`FamilyOs`): the server Worker and this docs site. [Infrastructure](/building/infrastructure/) shows how the pieces fit, and the [walkthrough](/building/walkthrough/) points Claude Code at the `dev` stage.
 
 ## The server Worker
 

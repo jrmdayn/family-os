@@ -77,7 +77,7 @@ Each event carries the outcome the decision worked out, such as `amount` and `ba
 
 ## From a sentence to a shift
 
-"Maria 4h on Friday", told to an LLM connected over MCP on Sunday 15 November 2026:
+"Maria 4h on Friday", told to an LLM connected over MCP on Sunday 15 November 2026 (the [walkthrough](/building/walkthrough/) shows the real tool calls and results):
 
 1. The LLM reads `SitterDirectory` and finds that "Maria" is `maria`, and that it isn't in `sharedNames`.
 2. It works out that the most recent Friday is `2026-11-13` and that 4 hours is `240` minutes.
