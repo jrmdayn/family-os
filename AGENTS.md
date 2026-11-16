@@ -45,7 +45,7 @@ pnpm exec alchemy plan --stage prod   # what a deploy would change (CI deploys p
 pnpm deploy:dev    # deploy the current checkout to the long-lived dev stage (or run CI's deploy-dev job)
 ```
 
-Deploying needs `FAMILY_OS_TOKEN` (the owner's bearer token, at least 32 characters) besides the Cloudflare credentials: the Worker binds it as a secret.
+Deploying needs, besides the Cloudflare credentials, `FAMILY_OS_TOKEN` (the owner's bearer token, at least 32 characters), `FAMILY_OS_OWNERS` (the emails that may sign in) and `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`: the Worker binds them as secrets. Sign-in (better-auth, Google, the OAuth server for Claude.ai) is in `packages/server/src/Auth.ts`; see `docs/src/content/docs/building/signing-in.md`.
 
 In a Claude Code cloud session, prefix Alchemy commands with `NODE_USE_ENV_PROXY=1`: otherwise Node bypasses the network proxy and Alchemy fails with "Transport error".
 

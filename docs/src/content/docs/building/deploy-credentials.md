@@ -12,7 +12,8 @@ GitHub Actions and Claude Code cloud sessions deploy Family OS with Cloudflare A
 | **Admin** | The `admin` Alchemy profile on the owner's laptop (`~/.alchemy/`) | Create API tokens (full account access) | Running `stacks/github.ts`, rarely |
 | **CI token** (`CIToken`) | GitHub Actions secret `CLOUDFLARE_API_TOKEN` | Workers Scripts, D1, Secrets Store, Account Settings, Workers Tail | Every deploy from CI |
 | **Session token** (`ClaudeSessionToken`) | The Claude Code cloud environment's secrets | The same as the CI token | Deploys from Claude Code cloud sessions |
-| **Owner token** (`OwnerToken`) | GitHub Actions secret `FAMILY_OS_TOKEN`, the Claude Code cloud environment, and a secret binding on the server Worker | Every command and read of the deployed Api and MCP server | Signing the owner in until Google sign-in and OAuth (M3) |
+| **Owner token** (`OwnerToken`) | GitHub Actions secret `FAMILY_OS_TOKEN`, the Claude Code cloud environment, and a secret binding on the server Worker | Every command and read of the deployed Api and MCP server | Signing the owner in without a browser: `fos`, scripts, Claude Code |
+| **Sign-in secrets** | GitHub Actions secrets `FAMILY_OS_OWNERS`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, added by hand, and secret bindings on the server Worker | Decide who may sign in with Google, and sign in with Google | Google sign-in and Claude.ai connectors; see [Signing in](/building/signing-in/) |
 
 The admin credential never leaves the laptop and is never used for ordinary deploys. The two deploy tokens can deploy Family OS and nothing else: no DNS, no billing, no new tokens. They are separate so either can be revoked without breaking the other.
 

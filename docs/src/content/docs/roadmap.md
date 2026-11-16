@@ -52,11 +52,11 @@ Needs a Cloudflare account and an API token stored as a GitHub secret.
 
 Needs a Google OAuth client.
 
-- [ ] better-auth with Google sign-in, stored in D1, restricted to an allowlist of emails.
-- [ ] `@better-auth/oauth-provider`, so a Claude.ai custom connector can sign in. Fallback: `@cloudflare/workers-oauth-provider`.
-- [ ] One `Session` middleware accepting the web cookie or the OAuth token, both resolving to the owner.
-- [ ] Check that Claude.ai accepts the sessionless MCP protocol (`v2026_07_28`); fall back to `v2025_11_25` if not.
-- [ ] Docs: signing in a Claude connector, with a sequence diagram; runbook for connecting Claude.ai.
+- [x] better-auth with Google sign-in, stored in D1 (EU), restricted to the emails in `FAMILY_OS_OWNERS`. See [Signing in](/building/signing-in/).
+- [x] `@better-auth/oauth-provider`, so a Claude.ai custom connector can sign in: discovery, dynamic client registration, consent, and JWT access tokens for `/mcp`. The fallback wasn't needed.
+- [x] One `Session` middleware accepting the web cookie or the OAuth token, both resolving to the owner. The owner token still works, for `fos` and Claude Code.
+- [x] Check that Claude.ai accepts the sessionless MCP protocol (`v2026_07_28`): it signs in and calls the tools on `dev`. Clients on 2024–2025 revisions, such as Gemini, go through a sessionless bridge (`McpLegacy.ts`); Gemini works too.
+- [x] Docs: [signing in a Claude connector](/building/signing-in/), with a sequence diagram; [runbook for connecting Claude.ai](/building/signing-in/#connect-claudeai-runbook).
 
 **Done when** "Maria 4h on Friday" and "What do I need to wire to whom?" work from Claude on a phone and in the browser.
 

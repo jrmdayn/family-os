@@ -5,6 +5,40 @@ description: The choices behind Family OS, with the reason for each.
 
 Each entry records a choice, why it was made, and what would make us revisit it. Newest first.
 
+## Clients on older MCP revisions are bridged, without sessions
+
+**Decision.** `/mcp` still runs only the sessionless `2026-07-28` server. A signed-in request that doesn't say `MCP-Protocol-Version: 2026-07-28` goes through `packages/server/src/McpLegacy.ts`: it answers `initialize` (with the capabilities and instructions the real server reports, and no `Mcp-Session-Id`) and `ping` itself, accepts notifications with `202`, answers batches, and rewrites every other request into its `2026-07-28` form for the real server. GET answers `405`.
+
+**Why.** Gemini signed in to `dev` and then failed: it speaks a 2025 revision, which starts with `initialize`, and the server answered `400`. Effect implements those revisions only with sessions held by a long-lived server, which a Worker can't keep between requests; hosting them in a Durable Object per session would be far more machinery. Streamable HTTP lets a server issue no session id, and nothing Family OS offers needs one (no subscriptions, no server-initiated requests), so each request can stand alone. The `2026-07-28` results carry a few extra fields (`resultType`, `ttlMs`) that older clients ignore.
+
+**Revisit if** a client needs something only a session gives (server-to-client requests, subscriptions), or Effect's request-scoped server learns the older revisions itself.
+
+## Claude.ai signs in through our own OAuth server, with better-auth's `oauth-provider`
+
+**Decision.** The server Worker is the OAuth authorization server for its own `/mcp`, with `@better-auth/oauth-provider` on the same better-auth that signs the owner in with Google. Claude.ai discovers it from the `401` on `/mcp` (protected resource metadata, RFC 9728), registers itself (open dynamic client registration), and sends the owner through `/sign-in`, Google and `/consent`. Access tokens are JWTs signed with the server's own key, whose audience is the `/mcp` URL and which carry the owner's email; the `Session` middleware checks them in process, with no database call but the signing keys. The owner token stays as a third way in. See [Signing in](/building/signing-in/).
+
+**Why.** Claude.ai's custom connectors only sign in with OAuth, and MCP clients expect discovery and dynamic registration. better-auth already holds the users and sessions, so its OAuth plugin issues tokens for the same accounts, with the same allowlist, from the same D1 database; `@cloudflare/workers-oauth-provider` would have meant a second store (KV) and gluing Google sign-in into its authorize step by hand. A token bound to `/mcp` can't be replayed against another server, and the email inside it is checked against `FAMILY_OS_OWNERS` on every call, so removing an owner locks their tokens out at once. Open registration costs nothing: a registered client can do nothing until an owner signs in and consents.
+
+**Trade-offs.** Registrations are rate limited only per Worker isolate, in memory. The issuer is the Worker's workers.dev origin, so moving to a custom domain will ask Claude to sign in again.
+
+**Revisit if** Claude.ai moves to Client ID Metadata Documents instead of registration (better-auth has a `cimd` plugin), or a second resource server needs these tokens.
+
+## Who may sign in is a secret list of emails, checked on every call
+
+**Decision.** `FAMILY_OS_OWNERS` lists the owners' Google emails. better-auth refuses to create a user whose email isn't on it or isn't verified by Google, and the `Session` middleware checks the email of every OAuth token and session cookie against it. It is a GitHub Actions secret, bound to the Worker like the owner token, and a deploy without an email fails.
+
+**Why.** The repository is public, so the list can't be code. Checking at sign-up keeps strangers out of the database; checking on every call means a removed owner loses access at the next deploy, without hunting down their sessions and tokens. One deployment is one household, so a second adult is one more email.
+
+**Revisit if** the household needs roles (someone who can log shifts but not record payments): then owners become a model concept.
+
+## The Worker learns its own URL from a binding
+
+**Decision.** The server Worker reads its public origin from Alchemy's `Cloudflare.Worker.URL` binding when it starts, and builds better-auth with it: the OAuth issuer, the `/mcp` resource and Google's callback URL all derive from it. At deploy, before the URL exists, better-auth gets a placeholder; it only needs its schema then.
+
+**Why.** OAuth needs absolute URLs fixed when better-auth starts, and they differ per stage: a preview's Worker name is generated. A binding that Alchemy fills at deploy keeps one code path for every stage, with no per-stage configuration to keep in sync.
+
+**Revisit if** the Worker moves to a custom domain: the binding follows it, but the Google client's redirect URIs and Claude's connector URL must be updated by hand.
+
 ## A household view reads `null` until its first event, and its description says so
 
 **Decision.** On a new household, `SitterDirectory` and `Payouts` read as `null` until the first sitter is registered, and `HourlyRates` until the first `SetHourlyRate` (over MCP, `{"value": null}`). We leave that as it is, and each of the three views' descriptions tells the LLM what `null` means: no sitters yet, nothing to wire, no household rate yet. The same change made `RegisterSitter`, `UpdateSitter` and `ArchiveSitter` reply with what they recorded, as every other command already did.
@@ -23,11 +57,13 @@ Each entry records a choice, why it was made, and what would make us revisit it.
 
 ## One Worker serves `/rpc`, `/api` and `/mcp` from the same Api
 
-**Decision.** The server Worker serves the `OwnerApi` three ways, from `packages/server/src/Routes.ts`: `/rpc` (the Api's own protocol, for `fos` and later the web app), `/api` (plain HTTP and JSON with an OpenAPI document, from Domain's `toHttpApi`) and `/mcp` (MCP tools, from Domain's `toMcp`). All three publish the same list of calls, `ownerCalls` in `OwnerApi.api.ts`, and the local dev server serves the same routes. `/mcp` serves only MCP `2026-07-28`, the sessionless revision, through `McpServer.layerHttpRequestScoped`. See [Deploying](/building/deploying/#the-server-worker).
+**Decision.** The server Worker serves the `OwnerApi` three ways, from `packages/server/src/Routes.ts`: `/rpc` (the Api's own protocol, for `fos` and later the web app), `/api` (plain HTTP and JSON with an OpenAPI document, from Domain's `toHttpApi`) and `/mcp` (MCP tools, from Domain's `toMcp`). All three publish the same list of calls, `ownerCalls` in `OwnerApi.api.ts`, and the local dev server serves the same routes. `/mcp` serves MCP `2026-07-28`, the sessionless revision, through `McpServer.layerHttpRequestScoped`, and bridges older revisions (see the entry above). See [Deploying](/building/deploying/#the-server-worker).
 
 **Why.** Every call goes through the Api's handlers, so the session middleware, the rules and the rejections are the same whichever way a call comes in, and adding a command to `ownerCalls` publishes it everywhere at once. The dev server runs the same routes, so what works locally works on the Worker. A Worker can't keep an MCP session alive between requests, so it can only serve the sessionless revision. Claude Code connects to it; we checked with `claude mcp add` against both the dev server and a deployed stage.
 
-**Revisit if** Claude.ai's connectors don't accept `2026-07-28` (checked in M3), or a client outside our own needs a stable HTTP contract: `toHttpApi` publishes the domain's replies as they are, so that client would get an API of its own.
+Claude.ai's connectors work with it (checked on `dev` in M3), and so does Gemini, through the bridge.
+
+**Revisit if** a client outside our own needs a stable HTTP contract: `toHttpApi` publishes the domain's replies as they are, so that client would get an API of its own.
 
 ## The owner token is minted as code, one for every stage
 
@@ -78,6 +114,8 @@ Each entry records a choice, why it was made, and what would make us revisit it.
 **Decision.** The server's `Session` middleware accepts one secret bearer token and signs it in as the owner. The dev server reads it from `FAMILY_OS_TOKEN`.
 
 **Why.** Every command and read already declares the `Session` middleware, so the Api is guarded from day one. The token check is a few lines in `packages/server/src/Session.ts`; Google sign-in and OAuth replace it in M3 without touching the domain.
+
+**Update (M3).** Google sign-in and OAuth came in beside the token rather than replacing it: `fos`, scripts and Claude Code have no browser to sign in with, and the token is already minted as code. The domain didn't change.
 
 ## The domain's units are cents, minutes and Paris dates
 

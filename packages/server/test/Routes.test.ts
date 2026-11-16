@@ -12,7 +12,7 @@ import * as HttpRouter from "effect/http/HttpRouter";
 import * as Layer from "effect/Layer";
 import * as Redacted from "effect/Redacted";
 import * as Schedule from "effect/Schedule";
-import { Routes } from "../src/Routes.ts";
+import { ModelRoutes } from "../src/Routes.ts";
 import { OwnerToken, SessionLive } from "../src/Session.ts";
 
 /**
@@ -30,7 +30,7 @@ const World = SessionLive.pipe(
 
 /** A server answering in process, like the Worker: `fetch(path, init)` returns its response. */
 const serve = Effect.gen(function* () {
-  const { handler, dispose } = HttpRouter.toWebHandler(Routes.pipe(Layer.provide(World)), {
+  const { handler, dispose } = HttpRouter.toWebHandler(ModelRoutes.pipe(Layer.provide(World)), {
     disableLogger: true,
   });
   yield* Effect.addFinalizer(() => Effect.promise(dispose));
@@ -177,9 +177,13 @@ it.live("/mcp serves every call as a tool, signed in with the owner's token", ()
     expect(tools.map((tool) => tool.name)).toContain("OwnerApi_LogShift_send");
     expect(tools).toHaveLength(15);
 
-    const anonymous = yield* call("OwnerApi_Payouts_get", { key: HOME });
-    expect(anonymous.isError).toBe(true);
-    expect(JSON.parse(anonymous.content[0].text)).toEqual({ _tag: "Unauthorized" });
+    // Without a token, /mcp answers 401 before any tool runs: that starts an OAuth sign-in.
+    const anonymous = yield* fetch(
+      "/mcp",
+      mcp("tools/call", { name: "OwnerApi_Payouts_get", arguments: { key: HOME } }),
+    );
+    expect(anonymous.status).toBe(401);
+    expect(anonymous.headers.get("www-authenticate")).toBe("Bearer");
 
     // A household view reads null until something reaches it; its description says so.
     const fresh = yield* call("OwnerApi_Payouts_get", { key: HOME }, TOKEN);
@@ -216,5 +220,130 @@ it.live("/mcp serves every call as a tool, signed in with the owner's token", ()
       reply: { amount: 6000, balance: 6000 },
       stream: "Sitter/maria",
     });
+  }).pipe(Effect.scoped),
+);
+
+/** A request from a client on a 2025 revision: no `2026-07-28` headers, no `_meta`. */
+const legacy = (body: unknown, token?: string, version?: string) => ({
+  method: "POST",
+  headers: {
+    "content-type": "application/json",
+    accept: "application/json, text/event-stream",
+    ...(version === undefined ? {} : { "mcp-protocol-version": version }),
+    ...(token === undefined ? {} : { authorization: `Bearer ${token}` }),
+  },
+  body: JSON.stringify(body),
+});
+
+it.live("/mcp bridges clients on a 2025 revision, without sessions", () =>
+  Effect.gen(function* () {
+    const { fetch } = yield* serve;
+    const json = (response: Response) => Effect.promise(() => response.json() as Promise<any>);
+
+    // initialize is answered with the revision asked for, the real capabilities, and no session.
+    const init = yield* fetch(
+      "/mcp",
+      legacy(
+        {
+          jsonrpc: "2.0",
+          id: 1,
+          method: "initialize",
+          params: {
+            protocolVersion: "2025-06-18",
+            capabilities: {},
+            clientInfo: { name: "gemini", version: "1" },
+          },
+        },
+        TOKEN,
+      ),
+    );
+    expect(init.status).toBe(200);
+    expect(init.headers.get("mcp-session-id")).toBeNull();
+    const initialized = yield* json(init);
+    expect(initialized.result).toMatchObject({
+      protocolVersion: "2025-06-18",
+      capabilities: { tools: {} },
+      serverInfo: { name: "family-os" },
+    });
+    expect(initialized.result.instructions).toContain("babysitting");
+
+    // An unknown revision is offered the newest bridged one.
+    const unknown = yield* json(
+      yield* fetch(
+        "/mcp",
+        legacy(
+          {
+            jsonrpc: "2.0",
+            id: 2,
+            method: "initialize",
+            params: { protocolVersion: "2099-01-01" },
+          },
+          TOKEN,
+        ),
+      ),
+    );
+    expect(unknown.result.protocolVersion).toBe("2025-11-25");
+
+    const notified = yield* fetch(
+      "/mcp",
+      legacy({ jsonrpc: "2.0", method: "notifications/initialized" }, TOKEN, "2025-06-18"),
+    );
+    expect(notified.status).toBe(202);
+
+    const listed = yield* json(
+      yield* fetch(
+        "/mcp",
+        legacy({ jsonrpc: "2.0", id: 3, method: "tools/list" }, TOKEN, "2025-06-18"),
+      ),
+    );
+    expect(listed.result.tools).toHaveLength(15);
+
+    const set = yield* json(
+      yield* fetch(
+        "/mcp",
+        legacy(
+          {
+            jsonrpc: "2.0",
+            id: 4,
+            method: "tools/call",
+            params: {
+              name: "OwnerApi_SetHourlyRate_send",
+              arguments: {
+                target: HOME,
+                input: { centsPerHour: 1500, effectiveFrom: "2026-01-01" },
+              },
+            },
+          },
+          TOKEN,
+          "2025-06-18",
+        ),
+      ),
+    );
+    expect(set).toMatchObject({ jsonrpc: "2.0", id: 4 });
+    expect(set.result.structuredContent).toMatchObject({
+      reply: { centsPerHour: 1500, effectiveFrom: "2026-01-01" },
+    });
+
+    // 2025-03-26 batches: one reply per request, in order, none for notifications.
+    const batch = yield* json(
+      yield* fetch(
+        "/mcp",
+        legacy(
+          [
+            { jsonrpc: "2.0", id: 5, method: "ping" },
+            { jsonrpc: "2.0", method: "notifications/initialized" },
+            { jsonrpc: "2.0", id: 6, method: "tools/list" },
+          ],
+          TOKEN,
+        ),
+      ),
+    );
+    expect(batch.map((reply: { id: number }) => reply.id)).toEqual([5, 6]);
+
+    // No server-to-client stream: GET is not allowed. And without a token, still 401.
+    const get = yield* fetch("/mcp", { headers: { authorization: `Bearer ${TOKEN}` } });
+    expect(get.status).toBe(405);
+    const anonymous = yield* fetch("/mcp", legacy({ jsonrpc: "2.0", id: 7, method: "tools/list" }));
+    expect(anonymous.status).toBe(401);
   }).pipe(Effect.scoped),
 );

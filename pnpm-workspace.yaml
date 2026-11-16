@@ -11,10 +11,16 @@ catalog:
   "@alchemy.run/cloudflare": 2.0.0-beta.87
   "@alchemy.run/domain": 2.0.0-beta.87
   "@alchemy.run/github": 2.0.0-beta.87
+  "@alchemy.run/better-auth": 2.0.0-beta.87
   # Effect
   effect: 4.1.4
   "@effect/platform-node": 4.1.4
   "@effect/vitest": 4.1.4
+  # Sign-in
+  better-auth: 1.7.25
+  "@better-auth/oauth-provider": 1.7.25
+  kysely: 0.29.4
+  oauth2-mock-server: 9.3.0
   # Frontend
   foldkit: 0.170.0
   # Docs

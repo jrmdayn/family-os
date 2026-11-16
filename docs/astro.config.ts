@@ -24,6 +24,7 @@ export default defineConfig({
             { label: "Infrastructure", link: "/building/infrastructure/" },
             { label: "Deploying", link: "/building/deploying/" },
             { label: "Deploy credentials", link: "/building/deploy-credentials/" },
+            { label: "Signing in", link: "/building/signing-in/" },
             { label: "Walkthrough: Maria 4h on Friday", link: "/building/walkthrough/" },
           ],
         },
