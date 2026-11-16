@@ -66,7 +66,7 @@ Needs the CSV export of the Notion database.
 
 - [x] `pnpm import-notion` (`packages/server/src/import-notion.ts`) replays the full history through the `OwnerApi`, keeping each shift's rate and each payment's date. The rates are worked out from the rows. See [The Notion import](/building/notion-import/).
 - [x] A dry run, in memory, prints each sitter's computed balance next to the balance in Notion. On the real export, every balance matches.
-- [ ] Import into `dev`, then into `prod` once they match.
+- [x] Import into `dev`, then into `prod` once they match. Every balance matched in both.
 
 **Done when** every balance matches Notion and babysitting no longer lives in Notion.
 
