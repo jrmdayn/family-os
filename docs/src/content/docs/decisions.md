@@ -5,6 +5,14 @@ description: The choices behind Family OS, with the reason for each.
 
 Each entry records a choice, why it was made, and what would make us revisit it. Newest first.
 
+## Clients on older MCP revisions are bridged, without sessions
+
+**Decision.** `/mcp` still runs only the sessionless `2026-07-28` server. A signed-in request that doesn't say `MCP-Protocol-Version: 2026-07-28` goes through `packages/server/src/McpLegacy.ts`: it answers `initialize` (with the capabilities and instructions the real server reports, and no `Mcp-Session-Id`) and `ping` itself, accepts notifications with `202`, answers batches, and rewrites every other request into its `2026-07-28` form for the real server. GET answers `405`.
+
+**Why.** Gemini signed in to `dev` and then failed: it speaks a 2025 revision, which starts with `initialize`, and the server answered `400`. Effect implements those revisions only with sessions held by a long-lived server, which a Worker can't keep between requests; hosting them in a Durable Object per session would be far more machinery. Streamable HTTP lets a server issue no session id, and nothing Family OS offers needs one (no subscriptions, no server-initiated requests), so each request can stand alone. The `2026-07-28` results carry a few extra fields (`resultType`, `ttlMs`) that older clients ignore.
+
+**Revisit if** a client needs something only a session gives (server-to-client requests, subscriptions), or Effect's request-scoped server learns the older revisions itself.
+
 ## Claude.ai signs in through our own OAuth server, with better-auth's `oauth-provider`
 
 **Decision.** The server Worker is the OAuth authorization server for its own `/mcp`, with `@better-auth/oauth-provider` on the same better-auth that signs the owner in with Google. Claude.ai discovers it from the `401` on `/mcp` (protected resource metadata, RFC 9728), registers itself (open dynamic client registration), and sends the owner through `/sign-in`, Google and `/consent`. Access tokens are JWTs signed with the server's own key, whose audience is the `/mcp` URL and which carry the owner's email; the `Session` middleware checks them in process, with no database call but the signing keys. The owner token stays as a third way in. See [Signing in](/building/signing-in/).
@@ -49,7 +57,7 @@ Each entry records a choice, why it was made, and what would make us revisit it.
 
 ## One Worker serves `/rpc`, `/api` and `/mcp` from the same Api
 
-**Decision.** The server Worker serves the `OwnerApi` three ways, from `packages/server/src/Routes.ts`: `/rpc` (the Api's own protocol, for `fos` and later the web app), `/api` (plain HTTP and JSON with an OpenAPI document, from Domain's `toHttpApi`) and `/mcp` (MCP tools, from Domain's `toMcp`). All three publish the same list of calls, `ownerCalls` in `OwnerApi.api.ts`, and the local dev server serves the same routes. `/mcp` serves only MCP `2026-07-28`, the sessionless revision, through `McpServer.layerHttpRequestScoped`. See [Deploying](/building/deploying/#the-server-worker).
+**Decision.** The server Worker serves the `OwnerApi` three ways, from `packages/server/src/Routes.ts`: `/rpc` (the Api's own protocol, for `fos` and later the web app), `/api` (plain HTTP and JSON with an OpenAPI document, from Domain's `toHttpApi`) and `/mcp` (MCP tools, from Domain's `toMcp`). All three publish the same list of calls, `ownerCalls` in `OwnerApi.api.ts`, and the local dev server serves the same routes. `/mcp` serves MCP `2026-07-28`, the sessionless revision, through `McpServer.layerHttpRequestScoped`, and bridges older revisions (see the entry above). See [Deploying](/building/deploying/#the-server-worker).
 
 **Why.** Every call goes through the Api's handlers, so the session middleware, the rules and the rejections are the same whichever way a call comes in, and adding a command to `ownerCalls` publishes it everywhere at once. The dev server runs the same routes, so what works locally works on the Worker. A Worker can't keep an MCP session alive between requests, so it can only serve the sessionless revision. Claude Code connects to it; we checked with `claude mcp add` against both the dev server and a deployed stage.
 

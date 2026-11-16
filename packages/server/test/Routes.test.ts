@@ -222,3 +222,128 @@ it.live("/mcp serves every call as a tool, signed in with the owner's token", ()
     });
   }).pipe(Effect.scoped),
 );
+
+/** A request from a client on a 2025 revision: no `2026-07-28` headers, no `_meta`. */
+const legacy = (body: unknown, token?: string, version?: string) => ({
+  method: "POST",
+  headers: {
+    "content-type": "application/json",
+    accept: "application/json, text/event-stream",
+    ...(version === undefined ? {} : { "mcp-protocol-version": version }),
+    ...(token === undefined ? {} : { authorization: `Bearer ${token}` }),
+  },
+  body: JSON.stringify(body),
+});
+
+it.live("/mcp bridges clients on a 2025 revision, without sessions", () =>
+  Effect.gen(function* () {
+    const { fetch } = yield* serve;
+    const json = (response: Response) => Effect.promise(() => response.json() as Promise<any>);
+
+    // initialize is answered with the revision asked for, the real capabilities, and no session.
+    const init = yield* fetch(
+      "/mcp",
+      legacy(
+        {
+          jsonrpc: "2.0",
+          id: 1,
+          method: "initialize",
+          params: {
+            protocolVersion: "2025-06-18",
+            capabilities: {},
+            clientInfo: { name: "gemini", version: "1" },
+          },
+        },
+        TOKEN,
+      ),
+    );
+    expect(init.status).toBe(200);
+    expect(init.headers.get("mcp-session-id")).toBeNull();
+    const initialized = yield* json(init);
+    expect(initialized.result).toMatchObject({
+      protocolVersion: "2025-06-18",
+      capabilities: { tools: {} },
+      serverInfo: { name: "family-os" },
+    });
+    expect(initialized.result.instructions).toContain("babysitting");
+
+    // An unknown revision is offered the newest bridged one.
+    const unknown = yield* json(
+      yield* fetch(
+        "/mcp",
+        legacy(
+          {
+            jsonrpc: "2.0",
+            id: 2,
+            method: "initialize",
+            params: { protocolVersion: "2099-01-01" },
+          },
+          TOKEN,
+        ),
+      ),
+    );
+    expect(unknown.result.protocolVersion).toBe("2025-11-25");
+
+    const notified = yield* fetch(
+      "/mcp",
+      legacy({ jsonrpc: "2.0", method: "notifications/initialized" }, TOKEN, "2025-06-18"),
+    );
+    expect(notified.status).toBe(202);
+
+    const listed = yield* json(
+      yield* fetch(
+        "/mcp",
+        legacy({ jsonrpc: "2.0", id: 3, method: "tools/list" }, TOKEN, "2025-06-18"),
+      ),
+    );
+    expect(listed.result.tools).toHaveLength(15);
+
+    const set = yield* json(
+      yield* fetch(
+        "/mcp",
+        legacy(
+          {
+            jsonrpc: "2.0",
+            id: 4,
+            method: "tools/call",
+            params: {
+              name: "OwnerApi_SetHourlyRate_send",
+              arguments: {
+                target: HOME,
+                input: { centsPerHour: 1500, effectiveFrom: "2026-01-01" },
+              },
+            },
+          },
+          TOKEN,
+          "2025-06-18",
+        ),
+      ),
+    );
+    expect(set).toMatchObject({ jsonrpc: "2.0", id: 4 });
+    expect(set.result.structuredContent).toMatchObject({
+      reply: { centsPerHour: 1500, effectiveFrom: "2026-01-01" },
+    });
+
+    // 2025-03-26 batches: one reply per request, in order, none for notifications.
+    const batch = yield* json(
+      yield* fetch(
+        "/mcp",
+        legacy(
+          [
+            { jsonrpc: "2.0", id: 5, method: "ping" },
+            { jsonrpc: "2.0", method: "notifications/initialized" },
+            { jsonrpc: "2.0", id: 6, method: "tools/list" },
+          ],
+          TOKEN,
+        ),
+      ),
+    );
+    expect(batch.map((reply: { id: number }) => reply.id)).toEqual([5, 6]);
+
+    // No server-to-client stream: GET is not allowed. And without a token, still 401.
+    const get = yield* fetch("/mcp", { headers: { authorization: `Bearer ${TOKEN}` } });
+    expect(get.status).toBe(405);
+    const anonymous = yield* fetch("/mcp", legacy({ jsonrpc: "2.0", id: 7, method: "tools/list" }));
+    expect(anonymous.status).toBe(401);
+  }).pipe(Effect.scoped),
+);

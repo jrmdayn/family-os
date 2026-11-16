@@ -38,6 +38,7 @@ import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Path from "effect/Path";
 import { Auth } from "./Auth.ts";
+import { bridgeLegacyMcp } from "./McpLegacy.ts";
 import { consentPage, homePage, signInPage } from "./Pages.ts";
 import { Authenticate } from "./Session.ts";
 
@@ -82,7 +83,8 @@ const Mcp = DomainAi.toMcp(OwnerApi, { expose: ownerCalls }).pipe(
 
 /**
  * Answers `/mcp` with a 401 before the MCP server runs, unless the request
- * is signed in. The challenge points at the protected resource metadata,
+ * is signed in. Signed-in requests from clients on an older MCP revision go
+ * through `McpLegacy.ts`. The challenge points at the protected resource metadata,
  * which is how Claude finds where to sign in (MCP authorization, RFC 9728).
  */
 const McpGuard = HttpRouter.middleware(
@@ -97,7 +99,8 @@ const McpGuard = HttpRouter.middleware(
       Effect.gen(function* () {
         const request = yield* HttpServerRequest.HttpServerRequest;
         const actor = yield* actorOf(request.headers);
-        if (Option.isSome(actor)) return yield* httpEffect;
+        // Signed in: clients on a 2024–2025 revision go through the bridge.
+        if (Option.isSome(actor)) return yield* bridgeLegacyMcp(httpEffect);
         return HttpServerResponse.jsonUnsafe(
           { error: "invalid_token", error_description: "Sign in to Family OS first." },
           { status: 401, headers: { "www-authenticate": challenge } },

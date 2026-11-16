@@ -89,9 +89,9 @@ If the sign-in window shows an error:
 | Google's `redirect_uri_mismatch` | The stage's callback URL isn't a redirect URI of the Google client (previews never are) |
 | Claude says it can't connect after signing in | Check the connector's URL ends in `/mcp`, then the Worker's logs: `pnpm exec alchemy tail --stage <stage>` |
 
-## The sessionless MCP protocol
+## MCP revisions
 
-`/mcp` serves only MCP `2026-07-28`, the revision without sessions, because a request-scoped Worker can't keep one open (see [Decisions](/decisions/)). Claude Code speaks it. Whether Claude.ai's connectors do is the last check of M3; if they don't, the fallback is `2025-11-25`, which needs the server to keep MCP sessions between requests.
+`/mcp` runs MCP `2026-07-28`, the revision without sessions, because a request-scoped Worker can't keep one open. Clients on a 2024–2025 revision (Gemini, many SDKs) open with an `initialize` handshake instead, which this server alone would refuse with a `400`. `McpLegacy.ts` bridges them without sessions, as Streamable HTTP allows: it answers `initialize` and `ping` itself, accepts notifications, and rewrites every other request into its `2026-07-28` form. GET (a server-to-client stream) answers `405`. See [Decisions](/decisions/).
 
 ## Locally
 
