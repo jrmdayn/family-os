@@ -25,6 +25,7 @@ export default defineConfig({
             { label: "Deploying", link: "/building/deploying/" },
             { label: "Deploy credentials", link: "/building/deploy-credentials/" },
             { label: "Signing in", link: "/building/signing-in/" },
+            { label: "The Notion import", link: "/building/notion-import/" },
             { label: "Walkthrough: Maria 4h on Friday", link: "/building/walkthrough/" },
           ],
         },

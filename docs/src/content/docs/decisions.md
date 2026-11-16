@@ -5,6 +5,16 @@ description: The choices behind Family OS, with the reason for each.
 
 Each entry records a choice, why it was made, and what would make us revisit it. Newest first.
 
+## The Notion import replays the history through the Api
+
+**Decision.** `pnpm import-notion` reads the CSV export of the Notion database and sends ordinary commands through the `OwnerApi` client: `SetHourlyRate`, `RegisterSitter`, `LogShift`, `RecordPayment`. It runs in memory by default (a dry run) and against a stage with `--into`. The household rates are worked out from each row's `Amount / Hours`. A shift's hours are rounded to whole minutes, and each payment is for what Family OS priced its shifts at, not Notion's amount. Each command's `commandId` comes from what it records, so a second run resumes or changes nothing. See [The Notion import](/building/notion-import/).
+
+**Why.** Going through the Api applies every rule the model has (no future dates, payments never above what is owed, rates copied by the policies) and needs no import-only command or event. The dry run and the real import run the same code, so a dry run that matches means the import will. The export has no rate column, but every row fits one schedule of household rates, and a schedule that doesn't fit is refused with the rows that break it. Notion stored fractions of an hour that aren't whole minutes: 2.33 hours at €12/h is €27.96 in Notion and €28.00 at 140 minutes. Paying what Family OS priced keeps such a sitter's balance at zero, like Notion's, rather than leaving a few cents owed forever.
+
+**Trade-offs.** The imported events are dated when the import runs, not when the shifts happened; their payloads carry the real dates, which is all the views read. A payment covering such a shift is recorded a few cents away from Notion's amount; the dry run lists each one.
+
+**Revisit if** another export needs importing (a second chore), or the history must keep Notion's exact amounts.
+
 ## Clients on older MCP revisions are bridged, without sessions
 
 **Decision.** `/mcp` still runs only the sessionless `2026-07-28` server. A signed-in request that doesn't say `MCP-Protocol-Version: 2026-07-28` goes through `packages/server/src/McpLegacy.ts`: it answers `initialize` (with the capabilities and instructions the real server reports, and no `Mcp-Session-Id`) and `ping` itself, accepts notifications with `202`, answers batches, and rewrites every other request into its `2026-07-28` form for the real server. GET answers `405`.
