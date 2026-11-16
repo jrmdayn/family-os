@@ -61,7 +61,9 @@ Each entry records a choice, why it was made, and what would make us revisit it.
 
 **Why.** Every call goes through the Api's handlers, so the session middleware, the rules and the rejections are the same whichever way a call comes in, and adding a command to `ownerCalls` publishes it everywhere at once. The dev server runs the same routes, so what works locally works on the Worker. A Worker can't keep an MCP session alive between requests, so it can only serve the sessionless revision. Claude Code connects to it; we checked with `claude mcp add` against both the dev server and a deployed stage.
 
-**Revisit if** Claude.ai's connectors don't accept `2026-07-28` (the last check of M3; the fallback, `2025-11-25`, needs MCP sessions kept between requests), or a client outside our own needs a stable HTTP contract: `toHttpApi` publishes the domain's replies as they are, so that client would get an API of its own.
+Claude.ai's connectors work with it (checked on `dev` in M3), and so does Gemini, through the bridge.
+
+**Revisit if** a client outside our own needs a stable HTTP contract: `toHttpApi` publishes the domain's replies as they are, so that client would get an API of its own.
 
 ## The owner token is minted as code, one for every stage
 
